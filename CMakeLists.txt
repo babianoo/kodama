@@ -55,7 +55,17 @@ if(NOT onnxruntime_FOUND)
     find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
         HINTS ${ONNXRUNTIME_ROOT}/include PATH_SUFFIXES onnxruntime)
     find_library(ONNXRUNTIME_LIBRARY onnxruntime HINTS ${ONNXRUNTIME_ROOT}/lib)
-    if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    # Microsoft's Windows package has the DLL beside its .lib
+    find_file(ONNXRUNTIME_DLL onnxruntime.dll HINTS ${ONNXRUNTIME_ROOT}/lib NO_DEFAULT_PATH)
+    if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY AND WIN32 AND ONNXRUNTIME_DLL)
+        # A DLL target, so the app's build copies it next to the .exe
+        add_library(onnxruntime::onnxruntime SHARED IMPORTED)
+        set_target_properties(onnxruntime::onnxruntime PROPERTIES
+            IMPORTED_LOCATION ${ONNXRUNTIME_DLL}
+            IMPORTED_IMPLIB ${ONNXRUNTIME_LIBRARY}
+            INTERFACE_INCLUDE_DIRECTORIES ${ONNXRUNTIME_INCLUDE_DIR})
+        set(onnxruntime_FOUND TRUE)
+    elseif(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
         add_library(onnxruntime::onnxruntime UNKNOWN IMPORTED)
         set_target_properties(onnxruntime::onnxruntime PROPERTIES
             IMPORTED_LOCATION ${ONNXRUNTIME_LIBRARY}
@@ -254,19 +264,38 @@ if(onnxruntime_FOUND)
     target_link_libraries(hearstash PRIVATE onnxruntime::onnxruntime)
     target_compile_definitions(hearstash PRIVATE HAVE_ONNXRUNTIME)
 
+    # Windows ships an old onnxruntime.dll of its own in System32 (for
+    # Windows ML), which is searched before PATH, so the app would load it
+    # and fail to start (0xc000007b). Windows looks next to the .exe first,
+    # so put the one it was built against there
+    get_target_property(ONNXRUNTIME_TYPE onnxruntime::onnxruntime TYPE)
+    if(WIN32 AND ONNXRUNTIME_TYPE STREQUAL "SHARED_LIBRARY")
+        add_custom_command(TARGET hearstash POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    $<TARGET_FILE:onnxruntime::onnxruntime> $<TARGET_FILE_DIR:hearstash>)
+    endif()
+endif()
+# The same for MinGW's own DLLs: other programs on PATH (QEMU, Git, ...)
+# ship older copies of libstdc++-6.dll, libcurl-4.dll and the rest, and the
+# app fails to start if it loads one. cmake/copy_mingw_dlls.cmake says more.
+# Runs after onnxruntime.dll is copied, so that's found next to the .exe
+if(MINGW)
+    get_filename_component(MINGW_BIN ${CMAKE_CXX_COMPILER} DIRECTORY)
+    add_custom_command(TARGET hearstash POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:hearstash> -DMINGW_BIN=${MINGW_BIN}
+                -DOBJDUMP=${CMAKE_OBJDUMP} -P ${CMAKE_SOURCE_DIR}/cmake/copy_mingw_dlls.cmake
+        VERBATIM)
+endif()
+if(onnxruntime_FOUND AND NOT WIN32)
     # Reads screenshots (PNG) with the models and prints their text, to
-    # check the OCR on saved screenshots: tools/read_text.cpp says how
+    # check the OCR on saved screenshots: tools/read_text.cpp says how.
+    # Not on Windows, where there's no PNG decoder (libpng is Linux-only)
     add_executable(read_text tools/read_text.cpp src/core/text_reader.cpp src/core/ocr_text.cpp
                    src/core/image.cpp src/core/screenshot.cpp)
     target_compile_options(read_text PRIVATE -Wall -Wextra)
     target_include_directories(read_text PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_compile_definitions(read_text PRIVATE HAVE_ONNXRUNTIME)
-    target_link_libraries(read_text PRIVATE onnxruntime::onnxruntime JPEG::JPEG nlohmann_json::nlohmann_json)
-    if(WIN32)
-        target_link_libraries(read_text PRIVATE gdi32 user32)
-    else()
-        target_link_libraries(read_text PRIVATE PNG::PNG)
-    endif()
+    target_link_libraries(read_text PRIVATE onnxruntime::onnxruntime JPEG::JPEG nlohmann_json::nlohmann_json PNG::PNG)
 endif()
 
 # --- The dictionary the app ships with ---

@@ -67,7 +67,10 @@ Installed on the system:
 - Optional: [onnxruntime](https://onnxruntime.ai/), to read text on the
   screen (Arch: `onnxruntime-cpu`; elsewhere Microsoft's prebuilt package,
   passed to CMake as `-DONNXRUNTIME_ROOT=<its folder>`). Without it, the
-  screen capture says it can't read
+  screen capture says it can't read. On Windows, use Microsoft's package
+  rather than MSYS2's: it's one self-contained DLL, which the build copies
+  next to the `.exe` (Windows has an old `onnxruntime.dll` of its own in
+  System32 that would load instead)
 
 Built with the app, as git submodules in `external/`:
 
