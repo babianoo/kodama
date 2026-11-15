@@ -53,6 +53,13 @@ static void set_common_options(CURL* curl, const std::string& url, bool follow_r
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, follow_redirects ? 1L : 0L);
     curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
     curl_easy_setopt(curl, CURLOPT_MAXREDIRS, MAX_REDIRECTS);
+#ifdef _WIN32
+    // Trust the certificates Windows trusts. MSYS2's libcurl otherwise looks
+    // for its CA bundle in ..\etc\ssl\certs relative to its own DLL, which
+    // isn't there once the DLL is copied next to the .exe, and every HTTPS
+    // request fails with "Problem with the SSL CA cert".
+    curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, static_cast<long>(CURLSSLOPT_NATIVE_CA));
+#endif
 }
 
 // Throws if the transfer failed or the status isn't 2xx
