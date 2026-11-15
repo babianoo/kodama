@@ -28,7 +28,9 @@ void write_file_atomically(const fs::path& file, std::string_view contents){
     if (fd < 0) throw std::runtime_error(std::format("Couldn't create {}", tmp.string()));
     ::close(fd);
 #endif
-    std::ofstream out(tmp);
+    // Binary: in text mode Windows writes each "\n" byte as "\r\n", which
+    // breaks a JPEG or WAV
+    std::ofstream out(tmp, std::ios::binary);
     out << contents;
     out.close();
     if (!out) throw std::runtime_error(std::format("Couldn't write {}", tmp.string()));
