@@ -34,6 +34,9 @@ struct AudioBuffer::Impl {
     // The output whose monitor device records, by PulseAudio's name for it.
     // Unused on Windows, where miniaudio follows the default output.
     std::string output;
+    // How many follow_default_output() calls in a row found the device
+    // stopped on its own. Windows only.
+    int stopped_calls = 0;
     // Replaced whenever what was recorded is forgotten. Only touched while
     // the device is closed.
     std::unique_ptr<Capture> capture;
@@ -155,6 +158,7 @@ void AudioBuffer::open_device(){
                                              ma_result_description(result)));
     }
     impl->open = true;
+    impl->stopped_calls = 0;
 }
 
 void AudioBuffer::close_device(){
@@ -207,8 +211,23 @@ std::vector<float> AudioBuffer::snapshot() const {
 
 void AudioBuffer::follow_default_output(){
 #ifdef _WIN32
-    // miniaudio's WASAPI backend already does, as soon as it changes
-    return;
+    // miniaudio's WASAPI backend already follows a new default output, as
+    // soon as it changes. It doesn't come back from losing the device,
+    // though: after sleep, or Bluetooth headphones dropping out, WASAPI
+    // says the device is invalidated, and miniaudio stops it and leaves it
+    // stopped. Nothing arrives after that, so every capture is silence.
+    // miniaudio's own rerouting stops the device for a moment too, so it's
+    // only opened again once it has stayed stopped since the last call.
+    if (!impl->open || impl->backend != Backend::System) return;
+    if (ma_device_get_state(&impl->device) == ma_device_state_started){
+        impl->stopped_calls = 0;
+        return;
+    }
+    if (++impl->stopped_calls < 2) return;
+    // The capture stays, and its GapDetector fills the time it was stopped
+    // with silence
+    close_device();
+    open_device();
 #else
     if (!impl->open || impl->backend != Backend::System) return;
     const std::string output = default_output(impl->context);

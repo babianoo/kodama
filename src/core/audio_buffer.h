@@ -62,7 +62,8 @@ public:
     // Restarts recording if the default output changed since it started,
     // e.g. headphones were plugged in, so it records the one that's
     // playing. What was recorded is kept. Call every few seconds. Throws
-    // like start(). Does nothing on Windows, where that happens by itself.
+    // like start(). On Windows, where that happens by itself, it instead
+    // reopens a device miniaudio stopped, e.g. after sleep.
     void follow_default_output();
 
 private:
