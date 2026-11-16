@@ -182,6 +182,7 @@ add_executable(hearstash
     src/core/shortcut.cpp
     src/core/stash.cpp
     src/core/structured_content.cpp
+    src/core/subtitles.cpp
     src/core/time_ranges.cpp
     src/core/transcriber.cpp
     src/core/whisper_models.cpp
@@ -217,6 +218,7 @@ add_executable(hearstash
     src/ui/stash_store.cpp
     src/ui/stash_transcriber.cpp
     src/ui/stash_window.cpp
+    src/ui/subtitle_track.cpp
     src/ui/theme.cpp
     src/ui/waveform.cpp
     src/ui/wrapped_text.cpp
@@ -443,6 +445,11 @@ target_compile_options(structured_content_test PRIVATE -Wall -Wextra)
 target_include_directories(structured_content_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(structured_content_test PRIVATE nlohmann_json::nlohmann_json)
 add_test(NAME structured_content COMMAND structured_content_test)
+
+add_executable(subtitles_test tests/subtitles_test.cpp src/core/subtitles.cpp)
+target_compile_options(subtitles_test PRIVATE -Wall -Wextra)
+target_include_directories(subtitles_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_test(NAME subtitles COMMAND subtitles_test)
 
 add_executable(deinflect_test tests/deinflect_test.cpp src/core/deinflect.cpp)
 target_compile_options(deinflect_test PRIVATE -Wall -Wextra)

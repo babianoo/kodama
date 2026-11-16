@@ -279,7 +279,7 @@ void Capturer::open_stashed(const StashEntry& entry){
                           } catch (const std::exception& e){
                               std::cerr << std::format("Couldn't remove the stashed line {}: {}\n", id, e.what());
                           }
-                      }, std::move(line.transcript));
+                      }, std::move(line.transcript), static_cast<double>(entry.time));
 }
 
 void Capturer::chime(bool worked){

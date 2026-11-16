@@ -235,6 +235,24 @@ the desktop's screenshot portal (xdg-desktop-portal), which:
    screenshot to the video (the last crop is remembered), and press
    **Add**. Cards are tagged `hearstash`.
 
+### With subtitles
+
+If you have the subtitles of what you're watching (an `.srt` or `.ass`
+file, in Japanese), press **Subtitles...** to import them. They're shown
+under the waveform and kept for the next captures until you press
+**Remove**; without them, the window stays as it was.
+
+- Each transcript is looked for in them. When a line is close enough
+  (a different kanji, kana or punctuation is fine), that line is shown in
+  its place, since the subtitles have it right. **Use Whisper's** goes back
+  to what whisper heard.
+- That also syncs the subtitles to the audio. Fine-tune it by dragging
+  them, the mouse wheel over them, or the arrows of the sync (where the
+  video was when you captured). It carries over to the next captures by
+  the clock, so pausing the video throws it off until the next line is
+  found.
+- Click a line on the subtitles to use it as the text.
+
 ## Using the stash
 
 1. While watching, press the stash shortcut. Nothing opens; a rising
