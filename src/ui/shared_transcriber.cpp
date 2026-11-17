@@ -41,8 +41,8 @@ void SharedTranscriber::release(){
     if (--holders == 0) Fl::add_timeout(UNLOAD_AFTER, on_unload_timeout, this);
 }
 
-std::string SharedTranscriber::transcribe(const WhisperModel& model, bool gpu, std::span<const float> samples,
-                                          const std::string& language, std::stop_token stop){
+Transcript SharedTranscriber::transcribe(const WhisperModel& model, bool gpu, std::span<const float> samples,
+                                         const std::string& language, std::stop_token stop){
     Turn turn(*this, stop);
     return transcriber.transcribe(model, gpu, samples, language, stop);
 }

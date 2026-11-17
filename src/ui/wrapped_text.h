@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -13,6 +14,8 @@ struct TextStyle {
     Fl_Font font = FL_HELVETICA;    // FL_HELVETICA_BOLD, FL_HELVETICA_ITALIC...
     Fl_Fontsize size = FL_NORMAL_SIZE;
     Fl_Color color = FL_FOREGROUND_COLOR;
+    // Filled in behind the text, like a highlighter's, if there's one
+    std::optional<Fl_Color> background{};
 };
 
 // A piece of text in one style. May contain '\n' and span several lines.
@@ -103,8 +106,9 @@ private:
     size_t fit(size_t from, size_t to, double max_w) const;
     // Sets line's height and baseline from the fonts on it
     void measure(Line& line) const;
-    // Draws line's text starting at x, in its own colors or in colors that
-    // are readable on the selection highlight
+    // Draws line's text starting at x, in its own colors over its
+    // backgrounds, or in colors that are readable on the selection
+    // highlight
     void draw_line(const Line& line, int x, int baseline, bool on_selection) const;
 
     // Offset in full_text of the character boundary nearest to the point

@@ -10,8 +10,9 @@
 // FLTK
 #include <FL/Fl_Double_Window.H>
 
-#include "core/image.h"
+#include "core/screen_frames.h"
 #include "core/subtitles.h"
+#include "core/transcript.h"
 
 // Only pointers and references to these are stored here, so the full
 // headers are included in capture_window.cpp instead.
@@ -31,12 +32,14 @@ class Fl_Widget;
 // what the computer played, with the end already selected. The selection
 // can be changed by dragging, and played back with Space or the Play
 // button. Enter (or the Transcribe button) turns it into text with
-// whisper, shown under the waveform; Escape then cancels. Selecting part
+// whisper, shown under the waveform; Escape then cancels. The words whisper
+// wasn't sure it heard right are highlighted, to check by ear. Selecting part
 // of the text with the mouse looks it up on Jisho, in a panel beside it;
 // Translate (Ctrl+T) shows the whole line's DeepL translation there,
 // which it starts with if the settings say to translate by itself.
 // Add to Anki (Ctrl+N) then opens a card with the word, the line, the
-// selected audio and the screenshot taken with the capture.
+// selected audio and the screenshots taken while it played, to pick the
+// picture from: at first the one taken nearest the selection's middle.
 //
 // The whisper model starts loading as soon as a capture opens, so it's
 // mostly ready by the time the selection is.
@@ -72,17 +75,20 @@ public:
     // the last selection_seconds of it selected, and brings the window to
     // the front. A window that's already open is refreshed where it is.
     // Cancels a transcription of the capture there was.
-    // screenshot is kept for the card; if it's empty, screenshot_error
-    // says why. title is the window's. on_card_added, if there's one, is
+    // frames, the screenshots taken while the audio played, oldest first,
+    // are kept for the card to pick its picture from; the last is
+    // usually the one taken with the capture. If there are none,
+    // screenshot_error says why. title is the window's. on_card_added, if there's one, is
     // called each time a card made from this capture is added to Anki,
     // e.g. to take a stashed line out of the stash. transcript, if it
     // isn't empty, is what the selection says already, e.g. transcribed
-    // when it was stashed: it's shown at once, without pressing Enter.
+    // when it was stashed: it's shown at once, without pressing Enter,
+    // with the words whisper wasn't sure of highlighted.
     // captured_at is when the audio ends, in seconds since 1970 (UTC), to
     // carry the subtitles' sync over from capture to capture; 0 for now.
-    void open(std::vector<float> audio, int rate, int selection_seconds, Image screenshot,
+    void open(std::vector<float> audio, int rate, int selection_seconds, std::vector<ScreenFrame> frames,
               std::string screenshot_error, std::string title = "Capture",
-              std::function<void()> on_card_added = {}, std::string transcript = {},
+              std::function<void()> on_card_added = {}, Transcript transcript = {},
               double captured_at = 0);
 
 private:
@@ -97,7 +103,7 @@ private:
     struct JobResult {
         CaptureWindow* win;
         unsigned id;
-        std::string text{};
+        Transcript text{};
         std::string error{};    // Non-empty if it failed
         bool cancelled = false;
     };
@@ -142,7 +148,7 @@ private:
     // Whisper's transcript of the selection (or the stashed one), and the
     // subtitles' line shown in its place, if any. whisper_btn goes back
     // and forth between them.
-    std::string whisper_text;
+    Transcript whisper_text;
     std::string subtitle_text;
     // Whether the subtitles' widgets are shown and the window grown for
     // them
@@ -154,7 +160,7 @@ private:
     // Created on the first play, so a machine without audio output only
     // finds out then
     std::unique_ptr<ClipPlayer> player;
-    Image screenshot;
+    std::vector<ScreenFrame> frames;
     std::string screenshot_error;
     // From open()
     std::string title;
@@ -199,7 +205,9 @@ private:
     void add_to_anki();
 
     // Shows a transcript, or the subtitles' line most like it
-    void show_transcript(const std::string& transcript);
+    void show_transcript(const Transcript& transcript);
+    // Shows whisper_text, with the words it wasn't sure of highlighted
+    void show_whisper_text();
     // Asks for a subtitle file and imports it
     void import_subtitles();
     void remove_subtitles();

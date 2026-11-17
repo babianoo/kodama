@@ -72,7 +72,7 @@ struct Gdi {
 };
 }
 
-Image take_screenshot(){
+Image take_screenshot(bool){
     // The monitor with the foreground window, or the main one when nothing
     // has the focus. In real pixels: FLTK made the app DPI-aware when its
     // first window opened.
@@ -159,6 +159,7 @@ std::string focused_app(){
 #include <png.h>
 
 #ifdef HAVE_SD_BUS
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -645,7 +646,7 @@ static Image only_monitor(Image all, const std::string& output){
 
 #endif
 
-Image take_screenshot(){
+Image take_screenshot(bool quick_only){
     std::string grim_error;
     try {
         return grim_screenshot();
@@ -658,13 +659,15 @@ Image take_screenshot(){
         try {
             return kwin_screenshot(denied);
         } catch (const std::runtime_error& e){
+            if (quick_only) throw std::runtime_error(std::format("Couldn't take a screenshot quickly: {}, and {}",
+                                                                 grim_error, e.what()));
             // The portal, then. Said once if KWin was there and said no,
             // since that's the difference between a capture that opens at
-            // once and one that takes 2 s.
-            static bool said = false;
-            if (denied && !said)
+            // once and one that takes 2 s. Atomic: screenshots are also
+            // taken on a thread of their own.
+            static std::atomic<bool> said = false;
+            if (denied && !said.exchange(true))
                 std::cerr << std::format("{}. Asking the screenshot portal instead, which is slower.\n", e.what());
-            said = said || denied;
         }
         // Asked first: the portal's dialog, when it shows one, could take
         // the focus

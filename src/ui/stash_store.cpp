@@ -36,7 +36,7 @@ void StashStore::start_transcribing(const std::string& id){
     changed();
 }
 
-void StashStore::finish_transcribing(const std::string& id, const std::string& transcript, const std::string& error){
+void StashStore::finish_transcribing(const std::string& id, const Transcript& transcript, const std::string& error){
     transcribing_.erase(id);
     const auto entry = std::ranges::find(entries_, id, &StashEntry::id);
     // Deleted while it was being transcribed
@@ -45,9 +45,10 @@ void StashStore::finish_transcribing(const std::string& id, const std::string& t
         return;
     }
     try {
-        set_stash_transcript(dir_, id, transcript, error);
-        entry->transcript = transcript;
+        set_stash_transcript(dir_, id, transcript.text, error, transcript.unsure);
+        entry->transcript = transcript.text;
         entry->transcript_error = error;
+        entry->transcript_unsure = transcript.unsure;
     } catch (const std::exception& e){
         std::cerr << std::format("Couldn't save the transcript of the stashed line {}: {}\n", id, e.what());
     }

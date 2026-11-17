@@ -29,7 +29,7 @@ StashTranscriber::~StashTranscriber(){
 void StashTranscriber::transcribe(const std::string& id, std::vector<float> clip, int rate){
     const WhisperModel* model = find_model(settings.get().speech.whisper_model);
     if (!model || !is_installed(*model)){
-        stash.finish_transcribing(id, "", "No whisper model is ready. Choose one in Settings > Speech-to-Text.");
+        stash.finish_transcribing(id, {}, "No whisper model is ready. Choose one in Settings > Speech-to-Text.");
         return;
     }
 
@@ -44,7 +44,7 @@ void StashTranscriber::transcribe(const std::string& id, std::vector<float> clip
         try {
             const std::vector<float> samples = resample(clip, rate, Transcriber::SAMPLE_RATE);
             result->text = transcriber.transcribe(*model, gpu, samples, "ja", stop);
-            if (result->text.empty()) result->error = "No speech found in the selection";
+            if (result->text.text.empty()) result->error = "No speech found in the selection";
         } catch (const TranscriptionCancelled&){
             result->cancelled = true;
         } catch (const std::exception& e){

@@ -9,6 +9,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <system_error>
+#include <vector>
 
 // whisper.cpp, and its ggml for the GPU
 #include <ggml-backend.h>
@@ -183,13 +184,13 @@ void Transcriber::prepare(const WhisperModel& wanted, bool gpu){
     if (model != &wanted || gpu_wanted != gpu) load(wanted, gpu);
 }
 
-std::string Transcriber::transcribe(const WhisperModel& wanted, bool gpu, std::span<const float> samples,
-                                    const std::string& language, std::stop_token stop){
+Transcript Transcriber::transcribe(const WhisperModel& wanted, bool gpu, std::span<const float> samples,
+                                   const std::string& language, std::stop_token stop){
     if (stop.stop_requested()) throw TranscriptionCancelled();
     prepare(wanted, gpu);
     // Loading has no way to stop partway, so it's checked again after
     if (stop.stop_requested()) throw TranscriptionCancelled();
-    if (samples.empty()) return "";
+    if (samples.empty()) return {};
 
     // Greedy: the best token each step. Beam search is a little more
     // accurate on long audio and several times slower.
@@ -221,12 +222,19 @@ std::string Transcriber::transcribe(const WhisperModel& wanted, bool gpu, std::s
     // It may have finished just as the stop came: the text is kept anyway,
     // since it's done
 
-    std::string text;
+    // Token by token, with how sure it was of each. Together they're the
+    // segments' text: it's made of the same tokens.
+    std::vector<TranscriptToken> tokens;
+    const whisper_token eot = whisper_token_eot(ctx.get());
     const int segments = whisper_full_n_segments(ctx.get());
-    for (int i = 0; i < segments; ++i) text += whisper_full_get_segment_text(ctx.get(), i);
-
-    // Segments start with a space
-    text.erase(text.find_last_not_of(" \t\r\n") + 1);
-    text.erase(0, text.find_first_not_of(" \t\r\n"));
-    return text;
+    for (int i = 0; i < segments; ++i){
+        const int count = whisper_full_n_tokens(ctx.get(), i);
+        for (int j = 0; j < count; ++j){
+            // Special tokens, like [_BEG_], which the segments' text leaves
+            // out too
+            if (whisper_full_get_token_id(ctx.get(), i, j) >= eot) continue;
+            tokens.push_back({whisper_full_get_token_text(ctx.get(), i, j), whisper_full_get_token_p(ctx.get(), i, j)});
+        }
+    }
+    return make_transcript(tokens);
 }

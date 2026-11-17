@@ -8,11 +8,13 @@
 #include <FL/Fl_Double_Window.H>
 
 #include "core/image.h"
+#include "core/screen_frames.h"
 
 // Only pointers and references to these are stored here, so the full
 // headers are included in card_window.cpp instead.
 class ClipboardInput;
 class CropView;
+class FrameStrip;
 class SettingsStore;
 class Fl_Box;
 class Fl_Button;
@@ -33,16 +35,24 @@ struct CardDraft {
     // The selection in the capture window
     std::vector<float> audio;
     int rate = 0;
-    // Taken when the shortcut was pressed; empty if it couldn't be, and
-    // screenshot_error says why
-    Image screenshot;
+    // The screenshots to pick the picture from, oldest first: those kept
+    // every few seconds while the audio played, and the one taken when the
+    // shortcut was pressed. Empty if none could be taken, and
+    // screenshot_error then says why.
+    std::vector<ScreenFrame> frames;
     std::string screenshot_error;
+    // The one picked at first, -1 for none
+    int frame = -1;
+    // When the shortcut was pressed, which the frames' times are told
+    // from, in seconds since 1970
+    double captured_at = 0;
 };
 
 // The window "Add to Anki" opens: the card's text in fields that can be
 // edited, formatted like the user's Yomitan cards when added (see
 // format_card()), and the screenshot with a rectangle to crop it to, which starts
-// where the last card's crop was. The card is only added when Add is
+// where the last card's crop was. With more than one screenshot, a row of
+// them under it picks which. The card is only added when Add is
 // pressed, to the deck and note type chosen in Settings > Anki, each part
 // in the field chosen there.
 class CardWindow {
@@ -76,13 +86,20 @@ private:
     // How long the audio is
     Fl_Box* audio_info = nullptr;
     CropView* crop_view = nullptr;
+    // Under crop_view, shown only with more than one screenshot
+    FrameStrip* frame_strip = nullptr;
     // Where the card goes, or what's missing in the settings
     Fl_Box* destination = nullptr;
     Fl_Button* add_btn = nullptr;
 
-    // What crop_view shows; it only borrows it
+    // What frame_strip shows; it only borrows it
     CardDraft draft;
     std::function<void()> on_added;
+    // The picked screenshot, decoded, which crop_view shows and only
+    // borrows. Empty if there's none.
+    Image screenshot;
+    // Whether frame_strip is shown and the window grown for it
+    bool strip_shown = false;
 
     // Static because FLTK callbacks are plain functions; the CardWindow
     // comes in through data.
@@ -92,6 +109,10 @@ private:
     void add();
     // Hides the window, and forgets the card
     void close();
+    // Shows draft's frame index in crop_view, cropped like the last one
+    void show_frame(int index);
+    // Shows or hides frame_strip, growing or shrinking the window for it
+    void show_strip(bool show);
     // Puts the crop where the last card's was, if it fits this screenshot
     void restore_crop();
     // Remembers the crop for the next card

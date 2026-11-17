@@ -19,6 +19,7 @@
 #include "core/settings.h"
 #include "ui/clipboard_input.h"
 #include "ui/crop_view.h"
+#include "ui/frame_strip.h"
 #include "ui/settings_store.h"
 #include "ui/theme.h"
 
@@ -70,6 +71,17 @@ CardWindow::CardWindow(SettingsStore& settings) : settings(settings){
     crop_view = new CropView(field_x, y, field_w, CROP_H);
     y += CROP_H + ROW_GAP;
 
+    // Hidden until there's more than one to pick from. What's under it is
+    // where it is without it, and moved down when it's shown.
+    frame_strip = new FrameStrip(field_x, y, field_w, FrameStrip::HEIGHT);
+    frame_strip->tooltip("Screenshots taken every few seconds while the line played. Click one to use it instead.");
+    frame_strip->on_pick([this](int index){
+        // The next one is cropped the same
+        save_crop();
+        show_frame(index);
+    });
+    frame_strip->hide();
+
     const int buttons_y = win.h() - MARGIN - BTN_H;
     destination = new Fl_Box(MARGIN, buttons_y, win.w() - 3 * MARGIN - 2 * BTN_W, BTN_H);
     destination->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE | FL_ALIGN_CLIP);
@@ -110,10 +122,9 @@ void CardWindow::open(CardDraft new_draft, std::function<void()> new_on_added){
     else audio_info->copy_label(std::format("{:.1f} s, the selection in the capture window",
                                             static_cast<double>(draft.audio.size()) / draft.rate).c_str());
 
-    crop_view->image(draft.screenshot.empty() ? nullptr : &draft.screenshot);
-    if (draft.screenshot.empty()) crop_view->copy_tooltip(draft.screenshot_error.c_str());
-    else crop_view->tooltip("Drag to choose the part of the screenshot to keep");
-    restore_crop();
+    frame_strip->frames(&draft.frames, draft.captured_at, draft.frame);
+    show_strip(draft.frames.size() > 1);
+    show_frame(draft.frame);
     refresh_destination();
 
     // Wayland doesn't let an app raise a window that's already shown, but
@@ -137,18 +148,56 @@ void CardWindow::refresh_destination(){
     destination->redraw();
 }
 
+void CardWindow::show_frame(int index){
+    // Let go of the one there was before it's replaced
+    crop_view->image(nullptr);
+    screenshot = {};
+    std::string error = draft.screenshot_error.empty() ? "No screenshot was taken" : draft.screenshot_error;
+    if (index >= 0 && index < static_cast<int>(draft.frames.size())){
+        try {
+            screenshot = draft.frames[static_cast<size_t>(index)].picture();
+        } catch (const std::exception& e){
+            error = e.what();
+        }
+    }
+    crop_view->image(screenshot.empty() ? nullptr : &screenshot);
+    if (screenshot.empty()) crop_view->copy_tooltip(error.c_str());
+    else crop_view->tooltip("Drag to choose the part of the screenshot to keep");
+    restore_crop();
+}
+
+void CardWindow::show_strip(bool show){
+    if (show) frame_strip->show();
+    else frame_strip->hide();
+    if (show == strip_shown) return;
+    strip_shown = show;
+
+    // The buttons under it move down to make room, or back up
+    const int dy = (show ? 1 : -1) * (FrameStrip::HEIGHT + ROW_GAP);
+    for (int i = 0; i < win.children(); ++i){
+        Fl_Widget* child = win.child(i);
+        if (child != frame_strip && child->y() >= frame_strip->y()) child->position(child->x(), child->y() + dy);
+    }
+    // The window doesn't resize, so its size range is set first: a window
+    // manager may hold it to the old one
+    const int new_h = win.h() + dy;
+    win.size_range(win.w(), new_h, win.w(), new_h);
+    win.size(win.w(), new_h);
+    win.redraw();
+}
+
 void CardWindow::restore_crop(){
     const AnkiSettings& anki = settings.get().anki;
-    if (draft.screenshot.empty() || anki.crop_w <= 0) return;
-    const double w = draft.screenshot.width, h = draft.screenshot.height;
+    if (screenshot.empty() || anki.crop_w <= 0) return;
+    const double w = screenshot.width, h = screenshot.height;
     crop_view->crop({static_cast<int>(std::lround(anki.crop_x * w)), static_cast<int>(std::lround(anki.crop_y * h)),
                      static_cast<int>(std::lround(anki.crop_w * w)), static_cast<int>(std::lround(anki.crop_h * h))});
 }
 
 void CardWindow::save_crop(){
-    if (draft.screenshot.empty()) return;
+    if (screenshot.empty()) return;
     const Rect r = crop_view->crop();
-    const double w = draft.screenshot.width, h = draft.screenshot.height;
+    const double w = screenshot.width, h = screenshot.height;
     settings.update([&](Settings& s){
         s.anki.crop_x = r.x / w;
         s.anki.crop_y = r.y / h;
@@ -189,9 +238,9 @@ void CardWindow::add(){
             card.audio_file = std::format("{}_{}.wav", TAG, stamp);
             anki_store_media(card.audio_file, encode_wav(draft.audio, draft.rate));
         }
-        if (!anki.picture_field.empty() && !draft.screenshot.empty()){
+        if (!anki.picture_field.empty() && !screenshot.empty()){
             card.picture_file = std::format("{}_{}.jpg", TAG, stamp);
-            const Image picture = shrink_to_height(crop(draft.screenshot, crop_view->crop()), PICTURE_MAX_H);
+            const Image picture = shrink_to_height(crop(screenshot, crop_view->crop()), PICTURE_MAX_H);
             anki_store_media(card.picture_file, encode_jpeg(picture, anki.picture_quality));
         }
         anki_add_note({.deck = anki.deck, .model = anki.note_type, .fields = format_card(card, anki), .tags = {TAG}});
@@ -220,6 +269,8 @@ void CardWindow::close(){
     win.hide();
     // Not kept any longer than it's needed
     crop_view->image(nullptr);
+    frame_strip->frames(nullptr, 0, -1);
+    screenshot = {};
     draft = {};
     on_added = {};
 }

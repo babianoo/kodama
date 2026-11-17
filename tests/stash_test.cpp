@@ -100,10 +100,59 @@ int main(){
     CHECK(without.screenshot.empty());
     CHECK(without.screenshot_error == "The portal said no");
     CHECK(load_stash_thumbnail(dir, second).empty());
+    CHECK(line.frames.empty());
+
+    // With screenshots kept every few seconds before it: a compressed one,
+    // and one kept as it was, which is compressed when saved
+    {
+        const std::vector<ScreenFrame> frames{compress_frame(gradient(1920, 1080), 1793012400.25),
+                                              keep_frame(gradient(320, 180), 1793012403.25)};
+        CHECK(frames[0].thumbnail.height == FRAME_THUMBNAIL_HEIGHT);
+        CHECK(frames[0].picture().height == 1080);
+        StashCapture with = capture;
+        with.screenshot = &screenshot;
+        with.screenshot_error = "";
+        with.time = 1793012405;
+        with.precise_time = 1793012405.75;
+        with.frames = frames;
+        const StashEntry framed = stash_line(dir, with);
+        CHECK(fs::exists(dir / framed.id / "frame-01.jpg"));
+        CHECK(fs::exists(dir / framed.id / "frame-02.jpg"));
+
+        const StashedLine loaded = load_stashed(dir, framed);
+        CHECK(loaded.frames.size() == 2);
+        if (loaded.frames.size() == 2){
+            // Told from the whole second it was stashed in, as the capture
+            // window is
+            CHECK(std::abs(loaded.frames[0].time - (1793012405 - 5.5)) < 1e-6);
+            CHECK(std::abs(loaded.frames[1].time - (1793012405 - 2.5)) < 1e-6);
+            CHECK(loaded.frames[0].picture().width == 1920);
+            CHECK(loaded.frames[1].picture().width == 320);
+            CHECK(loaded.frames[1].thumbnail.height == FRAME_THUMBNAIL_HEIGHT);
+        }
+        delete_stashed(dir, framed.id);
+    }
+
+    // The nearest, the later on a tie
+    {
+        const std::vector<ScreenFrame> none;
+        CHECK(nearest_frame(none, 5) == -1);
+        std::vector<ScreenFrame> frames(3);
+        frames[0].time = 10;
+        frames[1].time = 13;
+        frames[2].time = 16;
+        CHECK(nearest_frame(frames, 0) == 0);
+        CHECK(nearest_frame(frames, 12) == 1);
+        CHECK(nearest_frame(frames, 14.5) == 2);
+        CHECK(nearest_frame(frames, 99) == 2);
+    }
 
     // A transcript added later, which a line starts without
     CHECK(first.transcript.empty() && first.transcript_error.empty());
-    set_stash_transcript(dir, first.id, "猫が好き", "");
+    // With the words whisper wasn't sure of: 猫, and one that isn't in the
+    // text, which is left out
+    const std::vector<UnsureWord> unsure{{0, 3, 0.25f}, {6, 99, 0.1f}};
+    set_stash_transcript(dir, first.id, "猫が好き", "", unsure);
     set_stash_transcript(dir, second.id, "", "No whisper model");
     {
         const std::vector<StashEntry> again = list_stash(dir);
@@ -111,9 +160,13 @@ int main(){
         if (again.size() == 3){
             CHECK(again[2].transcript == "猫が好き");
             CHECK(again[2].transcript_error.empty());
+            CHECK((again[2].transcript_unsure == std::vector<UnsureWord>{{0, 3, 0.25f}}));
             CHECK(again[1].transcript.empty());
             CHECK(again[1].transcript_error == "No whisper model");
-            CHECK(load_stashed(dir, again[2]).transcript == "猫が好き");
+            CHECK(again[1].transcript_unsure.empty());
+            const StashedLine loaded = load_stashed(dir, again[2]);
+            CHECK(loaded.transcript.text == "猫が好き");
+            CHECK(loaded.transcript.unsure.size() == 1);
         }
     }
 

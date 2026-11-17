@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "core/image.h"
+#include "core/screen_frames.h"
+#include "core/transcript.h"
 
 // Lines stashed to look up later: captures that are saved instead of
 // opened, for learners who don't want to stop the show (PLAN.md, phase 9).
@@ -17,10 +19,20 @@
 //     audio.wav        the whole buffer, 16-bit mono
 //     screenshot.jpg   if there was one
 //     thumbnail.jpg    a small copy of it, for the list
+//     frame-01.jpg...  the screenshots kept every few seconds before it,
+//                      if there were any
 //     stash.json       {"time": 1793012345, "app": "mpv", "rate": 48000,
 //                       "selection_seconds": 8, "screenshot_error": "",
 //                       "transcript": "...", "transcript_error": "",
+//                       "transcript_unsure": [[0, 6, 0.31], ...],
+//                       "frames": [{"file": "frame-01.jpg",
+//                                   "seconds_before": 12.5}, ...],
 //                       "version": 1}
+//
+// A frame's seconds_before is how long before the stash it was taken.
+// transcript_unsure has the words whisper wasn't sure of (UnsureWord): the
+// byte offsets of each in the transcript, and its probability. It may be
+// missing, as it is from lines stashed before it was added.
 //
 // The transcript is of the end the capture window selects at first, and
 // is only there if the settings say to transcribe stashed lines right
@@ -47,6 +59,11 @@ struct StashCapture {
     std::string app;
     // When, as Unix time
     std::int64_t time = 0;
+    // The screenshots kept every few seconds before it, oldest first, and
+    // when it was stashed to the fraction of a second, which their times
+    // are told from. Empty if there were none.
+    std::span<const ScreenFrame> frames = {};
+    double precise_time = 0;
 };
 
 // One stashed line, as the list shows it. Its audio and screenshot are
@@ -64,6 +81,8 @@ struct StashEntry {
     // transcript_error then says why it couldn't be, if it couldn't.
     std::string transcript;
     std::string transcript_error;
+    // The words in transcript whisper wasn't sure of
+    std::vector<UnsureWord> transcript_unsure;
     // How long the audio is
     double seconds = 0;
     // What its files take on disk
@@ -79,7 +98,11 @@ struct StashedLine {
     Image screenshot;
     std::string screenshot_error;
     // Of the selection; empty if there's none
-    std::string transcript;
+    Transcript transcript;
+    // The screenshots kept every few seconds before it, oldest first, with
+    // times as seconds since 1970 counted back from the entry's time.
+    // Ones that can't be read are left out.
+    std::vector<ScreenFrame> frames;
 };
 
 // Saves capture in a new folder in dir, creating dir if needed, and
@@ -96,11 +119,12 @@ std::vector<StashEntry> list_stash(const std::filesystem::path& dir);
 // fills screenshot_error, since the audio is what matters.
 StashedLine load_stashed(const std::filesystem::path& dir, const StashEntry& entry);
 
-// Saves the transcript of the line with id, or why there's none. Throws
-// std::runtime_error if the line is gone, e.g. deleted while it was
-// being transcribed, or std::filesystem::filesystem_error.
+// Saves the transcript of the line with id, with the words in it whisper
+// wasn't sure of, or why there's none. Throws std::runtime_error if the
+// line is gone, e.g. deleted while it was being transcribed, or
+// std::filesystem::filesystem_error.
 void set_stash_transcript(const std::filesystem::path& dir, std::string_view id, std::string_view transcript,
-                          std::string_view error);
+                          std::string_view error, std::span<const UnsureWord> unsure = {});
 
 // entry's thumbnail, or an empty Image if it has none or it can't be read
 Image load_stash_thumbnail(const std::filesystem::path& dir, const StashEntry& entry);

@@ -633,8 +633,9 @@ void SettingsWindow::refresh_microphones(){
 }
 
 // Whether the rolling buffer records, how long it keeps and how much a
-// capture starts with selected, and whether it's recording now. Then what
-// happens when a line is stashed.
+// capture starts with selected, and whether it's recording now. Then
+// whether screenshots are kept every few seconds, and what happens when a
+// line is stashed.
 void SettingsWindow::add_recording_settings(int x, int w){
     const int left = x + MARGIN, right = x + w - MARGIN;
     const int box_x = left + LABEL_W;
@@ -673,8 +674,34 @@ void SettingsWindow::add_recording_settings(int x, int w){
     buffer_status->labelsize(12);
     y += buffer_status->h() + GROUP_GAP;
 
-    const std::string stash_tip = "A stashed line is saved on this computer, its audio and screenshot, until a "
-                                  "card is made from it or it's deleted.\nAbout 3 MB for 30 seconds.";
+    const std::string screenshots_tip =
+        "So a card's picture can be picked from around the line, not only the moment you pressed the shortcut.\n"
+        "Only kept in memory, for as long as the audio, unless you stash the line."
+#ifndef _WIN32
+        "\nNeeds grim or KDE: the screenshot portal is too slow to ask every few seconds."
+#endif
+        ;
+    screenshots_check = new Fl_Check_Button(left, y, right - left, PILL_H,
+                                            "Keep a screenshot every few seconds while recording");
+    screenshots_check->value(settings.get().buffer.screenshots);
+    screenshots_check->clear_visible_focus();
+    screenshots_check->callback(on_screenshots, this);
+    set_tip({screenshots_check}, screenshots_tip);
+    y += ROW_H;
+
+    Fl_Box* every_label = row_label(left, y, "Seconds apart");
+    screenshot_seconds_input = number_input(box_x, y);
+    screenshot_seconds_input->value(settings.get().buffer.screenshot_seconds);
+    screenshot_seconds_input->callback(on_screenshot_seconds, this);
+    if (!settings.get().buffer.screenshots) screenshot_seconds_input->deactivate();
+    set_tip({every_label, screenshot_seconds_input},
+            std::format("From {} to {}. Fewer seconds give more to pick from, but take more of the computer's time.",
+                        BufferSettings::MIN_SCREENSHOT_SECONDS, BufferSettings::MAX_SCREENSHOT_SECONDS));
+    y += ROW_H + GROUP_GAP;
+
+    const std::string stash_tip = "A stashed line is saved on this computer, its audio and screenshots, until a "
+                                  "card is made from it or it's deleted.\nAbout 3 MB for 30 seconds, and as much "
+                                  "again with a screenshot every few seconds.";
     stash_chime_check = new Fl_Check_Button(left, y, right - left, PILL_H, "Chime when a line is stashed");
     stash_chime_check->value(settings.get().buffer.stash_chime);
     stash_chime_check->clear_visible_focus();
@@ -807,6 +834,28 @@ void SettingsWindow::on_buffer_seconds(Fl_Widget*, void* data){
     static_cast<SettingsWindow*>(data)->apply_buffer_seconds();
 }
 
+void SettingsWindow::on_screenshots(Fl_Widget*, void* data){
+    SettingsWindow* self = static_cast<SettingsWindow*>(data);
+    const bool on = self->screenshots_check->value();
+    // Off forgets the ones kept
+    self->settings.update([on](Settings& s){ s.buffer.screenshots = on; });
+    if (on) self->screenshot_seconds_input->activate();
+    else self->screenshot_seconds_input->deactivate();
+}
+
+void SettingsWindow::on_screenshot_seconds(Fl_Widget*, void* data){
+    SettingsWindow* self = static_cast<SettingsWindow*>(data);
+    // Empty, or not a number: put back as it was
+    int seconds = self->settings.get().buffer.screenshot_seconds;
+    try {
+        seconds = std::stoi(self->screenshot_seconds_input->value());
+    } catch (const std::exception&){}
+    if (seconds != self->settings.get().buffer.screenshot_seconds)
+        self->settings.update([seconds](Settings& s){ s.buffer.screenshot_seconds = seconds; });
+    // Clamped by update(), and shown that way
+    self->screenshot_seconds_input->value(self->settings.get().buffer.screenshot_seconds);
+}
+
 void SettingsWindow::apply_buffer_seconds(){
     // Empty, or not a number: put back as it was
     const BufferSettings& saved = settings.get().buffer;
@@ -852,6 +901,7 @@ void SettingsWindow::refresh_buffer(){
         status->copy_tooltip(error.empty() ? nullptr : error.c_str());
         status->redraw();
     }
+    if (screenshots_check) screenshots_check->value(settings.get().buffer.screenshots);
     if (stash_chime_check) stash_chime_check->value(settings.get().buffer.stash_chime);
     if (stash_transcribe_check) stash_transcribe_check->value(settings.get().buffer.stash_transcribe);
 }

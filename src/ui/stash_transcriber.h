@@ -4,6 +4,8 @@
 #include <thread>
 #include <vector>
 
+#include "core/transcript.h"
+
 // Only references to these are stored here, so the full headers are
 // included in stash_transcriber.cpp instead.
 class SettingsStore;
@@ -46,7 +48,7 @@ private:
         StashTranscriber* self;
         unsigned job;
         std::string line;
-        std::string text{};
+        Transcript text{};
         std::string error{};    // Non-empty if it failed
         bool cancelled = false;
     };

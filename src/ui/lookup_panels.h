@@ -2,10 +2,12 @@
 
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "core/transcript.h"
 #include "core/word_entry.h"
 
 // Only pointers to these are stored here, so the full headers are
@@ -34,8 +36,10 @@ public:
     LookupPanels(const LookupPanels&) = delete;
     LookupPanels& operator=(const LookupPanels&) = delete;
 
-    // Shows text, with a hint to select a word in the panel
-    void show_text(const std::string& text);
+    // Shows text, with a hint to select a word in the panel. The unsure
+    // words in it, e.g. ones whisper wasn't sure it heard right, are
+    // highlighted, and the hint says why.
+    void show_text(const std::string& text, std::span<const UnsureWord> unsure = {});
     // Shows note small and grey in the text's place, e.g. what to do or
     // what's happening, and empties the panel. There's no text then.
     void show_note(const std::string& note);

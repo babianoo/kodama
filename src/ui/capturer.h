@@ -11,6 +11,7 @@
 class AudioBuffer;
 class CaptureWindow;
 class ClipPlayer;
+class FrameRecorder;
 class ScreenWindow;
 class SettingsStore;
 class SharedTranscriber;
@@ -56,7 +57,8 @@ public:
     void pause_hotkey(bool paused);
 
     // Opens the last seconds in the capture window, with a screenshot
-    // taken now, as the shortcut does
+    // taken now and those kept every few seconds before it, as the
+    // shortcut does
     void capture();
     // Opens a screenshot taken now in the screen window, which reads its
     // text, as the screen shortcut does
@@ -82,6 +84,9 @@ private:
     // it's needed
     std::unique_ptr<AudioBuffer> buffer;
     std::string error_;
+    // The screenshots kept every few seconds while the buffer is on, if the
+    // settings say to, for a card's picture to be picked from
+    std::unique_ptr<FrameRecorder> frame_recorder;
     // Null if it couldn't be set up
     std::unique_ptr<GlobalHotkey> hotkey;
     // Indexed by index(action)

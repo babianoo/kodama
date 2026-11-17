@@ -33,7 +33,11 @@
 //
 // Throws std::runtime_error if it can't, e.g. neither grim nor the portal
 // works.
-Image take_screenshot();
+//
+// quick_only leaves out the portal, which is slow, saves a file each time
+// and may ask the user: for screenshots taken by themselves every few
+// seconds. On Windows it changes nothing. Safe to call from any thread.
+Image take_screenshot(bool quick_only = false);
 
 // Which program has the focus, so what a screenshot shows can be told
 // apart by game: on Windows the file name of the foreground window's

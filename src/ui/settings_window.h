@@ -137,6 +137,10 @@ private:
     ClipboardInput* selection_seconds_input = nullptr;
     // Recording, off, or why it can't record
     Fl_Box* buffer_status = nullptr;
+    // Also there: whether a screenshot is kept every few seconds, and how
+    // many seconds apart, applied like capacity_input
+    Fl_Check_Button* screenshots_check = nullptr;
+    ClipboardInput* screenshot_seconds_input = nullptr;
     // Each shortcut, by HotkeyAction, on the Shortcuts page. The boxes are
     // on Windows only.
     std::array<ShortcutInput*, HOTKEY_ACTION_COUNT> shortcut_inputs{};
@@ -197,6 +201,8 @@ private:
     static void on_gpu_toggled(Fl_Widget* w, void* data);
     static void on_buffer_enabled(Fl_Widget* w, void* data);
     static void on_buffer_seconds(Fl_Widget* w, void* data);
+    static void on_screenshots(Fl_Widget* w, void* data);
+    static void on_screenshot_seconds(Fl_Widget* w, void* data);
     // Any of shortcut_inputs
     static void on_shortcut(Fl_Widget* w, void* data);
     static void on_stash_chime(Fl_Widget* w, void* data);

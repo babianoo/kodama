@@ -1,6 +1,7 @@
 #include "ui/capturer.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <exception>
 #include <format>
@@ -16,7 +17,9 @@
 
 #include "core/audio_buffer.h"
 #include "core/clip_player.h"
+#include "core/frame_recorder.h"
 #include "core/local_time.h"
+#include "core/screen_frames.h"
 #include "core/screenshot.h"
 #include "core/settings.h"
 #include "core/stash.h"
@@ -33,6 +36,11 @@ static constexpr double FOLLOW_TICK = 3;
 // The chime's sample rate, and how long it plays at most, in seconds
 static constexpr int CHIME_RATE = 48000;
 static constexpr double CHIME_SECONDS = 0.4;
+
+// The clock, in seconds since 1970 (UTC)
+static double clock_now(){
+    return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 // Tones one after another, each a frequency (Hz) for seconds, faded in
 // and out so they don't click. Quiet: it plays over the video, and ends up
@@ -53,6 +61,7 @@ static std::vector<float> tones(std::initializer_list<std::pair<double, double>>
 
 Capturer::Capturer(SettingsStore& settings, SharedTranscriber& transcriber, StashStore& stash)
     : settings(settings), transcriber(transcriber), stash(stash),
+      frame_recorder(std::make_unique<FrameRecorder>()),
       stash_transcriber(std::make_unique<StashTranscriber>(settings, transcriber, stash)){
     apply_settings();
     settings_listener = settings.add_listener([this]{
@@ -89,6 +98,9 @@ bool Capturer::recording() const {
 
 void Capturer::apply_settings(){
     const BufferSettings& wanted = settings.get().buffer;
+    // On Windows the first is taken a few seconds from now, once the main
+    // window has made the app DPI-aware, so it's of the whole monitor
+    frame_recorder->configure(wanted.enabled && wanted.screenshots, wanted.screenshot_seconds, wanted.seconds);
     if (!wanted.enabled){
         // Forgets what was recorded too
         if (buffer) buffer->stop();
@@ -185,6 +197,7 @@ void Capturer::capture(){
     }
     // The audio first, since the screenshot takes a tenth of a second.
     // Both before the window opens and covers anything.
+    const double now = clock_now();
     std::vector<float> audio = buffer->snapshot();
     Image screenshot;
     std::string screenshot_error;
@@ -195,9 +208,14 @@ void Capturer::capture(){
         screenshot_error = e.what();
     }
 
+    // Those kept while the audio was playing, then the one taken now
+    std::vector<ScreenFrame> frames = frame_recorder->frames(
+        now - static_cast<double>(audio.size()) / AudioBuffer::SAMPLE_RATE, now);
+    if (!screenshot.empty()) frames.push_back(keep_frame(std::move(screenshot), now));
+
     if (!capture_win) capture_win = std::make_unique<CaptureWindow>(settings, transcriber);
     capture_win->open(std::move(audio), AudioBuffer::SAMPLE_RATE, settings.get().buffer.selection_seconds,
-                      std::move(screenshot), std::move(screenshot_error));
+                      std::move(frames), std::move(screenshot_error), "Capture", {}, {}, now);
 }
 
 void Capturer::read_screen(){
@@ -228,10 +246,16 @@ void Capturer::stash_now(){
     }
     // Like capture(): the audio first. Which app it is before the
     // screenshot, which may show the portal's dialog.
+    const double now = clock_now();
     const std::vector<float> audio = buffer->snapshot();
+    // Those kept while the audio was playing; the one taken now is the
+    // stash's screenshot
+    const std::vector<ScreenFrame> frames = frame_recorder->frames(
+        now - static_cast<double>(audio.size()) / AudioBuffer::SAMPLE_RATE, now);
     StashCapture capture{.audio = audio, .rate = AudioBuffer::SAMPLE_RATE,
                          .selection_seconds = settings.get().buffer.selection_seconds, .screenshot = nullptr,
-                         .screenshot_error = "", .app = focused_app(), .time = unix_now()};
+                         .screenshot_error = "", .app = focused_app(),
+                         .time = static_cast<std::int64_t>(std::floor(now)), .frames = frames, .precise_time = now};
     Image screenshot;
     try {
         screenshot = take_screenshot();
@@ -269,10 +293,12 @@ void Capturer::open_stashed(const StashEntry& entry){
         return;
     }
     const std::string title = std::format("Stashed line, {}", format_time(local_time(entry.time), "%a %H:%M"));
+    std::vector<ScreenFrame> frames = std::move(line.frames);
+    if (!line.screenshot.empty()) frames.push_back(keep_frame(std::move(line.screenshot), static_cast<double>(entry.time)));
     if (!capture_win) capture_win = std::make_unique<CaptureWindow>(settings, transcriber);
     // By the time a card is added, the line may be gone already, e.g.
     // deleted in the stash window meanwhile; removing it again does nothing
-    capture_win->open(std::move(line.audio), line.rate, line.selection_seconds, std::move(line.screenshot),
+    capture_win->open(std::move(line.audio), line.rate, line.selection_seconds, std::move(frames),
                       std::move(line.screenshot_error), title, [this, id = entry.id]{
                           try {
                               stash.remove(id);

@@ -219,7 +219,8 @@ void MainWindow::start_recording(){
         auto* result = new Transcription{.win = this, .text = {}};
         try {
             // Nothing recorded is nothing said, even if the model failed
-            if (!samples.empty()) result->text = transcriber.transcribe(*model, gpu, samples, "ja", stop);
+            // The search bar only takes the text
+            if (!samples.empty()) result->text = transcriber.transcribe(*model, gpu, samples, "ja", stop).text;
         } catch (const TranscriptionCancelled&){
             delete result;
             return;

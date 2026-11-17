@@ -249,7 +249,10 @@ void ScreenWindow::add_to_anki(){
     panels->fill(draft);
     // No audio: the card window says so. A copy of the screenshot, since
     // more than one card can be made from it.
-    draft.screenshot = screenshot;
+    if (!screenshot.empty()){
+        draft.frames.push_back(keep_frame(screenshot, 0));
+        draft.frame = 0;
+    }
 
     if (!card_win) card_win = std::make_unique<CardWindow>(settings);
     card_win->open(std::move(draft));

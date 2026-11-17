@@ -41,10 +41,11 @@ public:
     bool transcribing(std::string_view id) const { return transcribing_.contains(std::string(id)); }
     // Marks the line with id as being transcribed now
     void start_transcribing(const std::string& id);
-    // Saves the line's transcript, or why there's none, once it's done.
-    // A line deleted meanwhile is left alone. Never throws: a transcript
-    // that can't be saved is printed, and the line opens without it.
-    void finish_transcribing(const std::string& id, const std::string& transcript, const std::string& error);
+    // Saves the line's transcript, with the words whisper wasn't sure of,
+    // or why there's none, once it's done. A line deleted meanwhile is
+    // left alone. Never throws: a transcript that can't be saved is
+    // printed, and the line opens without it.
+    void finish_transcribing(const std::string& id, const Transcript& transcript, const std::string& error);
     // Why the last stash failed, e.g. with the buffer off. Empty if it
     // worked. Pressed while watching, it can't be said in a dialog.
     const std::string& last_error() const { return last_error_; }

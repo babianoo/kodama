@@ -15,7 +15,8 @@ video, a stream). When you miss a line, press a shortcut and you can:
 3. select any word in the transcript to look it up in the dictionary that
    comes with the app, inflected or not (悩んでた finds 悩む),
 4. add it to Anki as a card with the sentence, the audio clip and a
-   cropped screenshot of the moment.
+   cropped screenshot of the moment, picked from the ones taken every
+   few seconds while the line played.
 
 The fast path is **shortcut → Enter → read**. Everything else is optional.
 
@@ -220,7 +221,9 @@ the desktop's screenshot portal (xdg-desktop-portal), which:
 - takes all your monitors, not just the one with the video, so crop to
   it as usual (on KDE it's cut down to the monitor with the focus, with
   `kscreen-doctor`),
-- is slower: about 2 s on KDE before the capture window opens.
+- is slower: about 2 s on KDE before the capture window opens,
+- is too slow to ask every few seconds, so there the card only has the
+  screenshot taken when you pressed the shortcut.
 
 ## Using a capture
 
@@ -229,11 +232,20 @@ the desktop's screenshot portal (xdg-desktop-portal), which:
 2. Drag on the waveform to change the selection. **Space** plays and
    stops it.
 3. **Enter** transcribes the selection. **Esc** cancels a transcription
-   that's running.
+   that's running. Words whisper wasn't sure it heard right (under 50%
+   likely) are highlighted in yellow: listen for those before trusting
+   them.
 4. Select text in the transcript to look it up.
 5. To make a card, press **Add to Anki**, check the fields, crop the
    screenshot to the video (the last crop is remembered), and press
    **Add**. Cards are tagged `hearstash`.
+
+   While it records, Hearstash also keeps a screenshot every 3 seconds,
+   so you don't have to press the shortcut at the right moment. The card
+   starts with the one taken nearest the middle of your selection, and a
+   row of the others under it, each with how long before the shortcut it
+   was taken: click one to use it instead. Settings > Recording turns
+   this off or changes how many seconds apart they are.
 
 ### With subtitles
 
@@ -307,10 +319,12 @@ than overwritten.
 
 The app listens to everything your computer plays, so:
 
-- The buffer stays in memory and is never written to disk, except a clip
-  you add to a card, and lines you stash. A stashed line (its audio and
-  screenshot, about 3 MB for 30 seconds) stays on disk until you make a
-  card from it or delete it, and only your user can read it.
+- The buffer, and the screenshots kept every few seconds, stay in memory
+  and are never written to disk, except a clip you add to a card, and
+  lines you stash. A stashed line (its audio and screenshots, about 3 MB
+  for 30 seconds, and as much again for the screenshots) stays on disk
+  until you make a card from it or delete it, and only your user can read
+  it.
 - Transcription and reading the screen run locally. Nothing is sent anywhere except what you
   choose to look up (to DeepL or MyMemory, or to Jisho when the
   dictionary on your computer has nothing for it) and cards you add to

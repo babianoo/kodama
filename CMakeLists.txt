@@ -163,6 +163,7 @@ add_executable(hearstash
     src/core/dictionary.cpp
     src/core/dictionary_files.cpp
     src/core/dictionary_import.cpp
+    src/core/frame_recorder.cpp
     src/core/frequency_list.cpp
     src/core/jisho.cpp
     src/core/local_time.cpp
@@ -176,6 +177,7 @@ add_executable(hearstash
     src/core/recorder.cpp
     src/core/resample.cpp
     src/core/sample_ring.cpp
+    src/core/screen_frames.cpp
     src/core/screenshot.cpp
     src/core/settings.cpp
     src/core/sha1.cpp
@@ -185,6 +187,7 @@ add_executable(hearstash
     src/core/subtitles.cpp
     src/core/time_ranges.cpp
     src/core/transcriber.cpp
+    src/core/transcript.cpp
     src/core/whisper_models.cpp
     src/core/word_lookup.cpp
     src/core/zip_archive.cpp
@@ -199,6 +202,7 @@ add_executable(hearstash
     src/ui/dictionary_updater.cpp
     src/ui/filter_bar.cpp
     src/ui/fit_line.cpp
+    src/ui/frame_strip.cpp
     src/ui/frequency_downloader.cpp
     src/ui/global_hotkey.cpp
     src/ui/history_store.cpp
@@ -434,7 +438,7 @@ target_include_directories(shortcut_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_test(NAME shortcut COMMAND shortcut_test)
 
 add_executable(stash_test tests/stash_test.cpp src/core/stash.cpp src/core/image.cpp src/core/media_encoding.cpp
-               src/core/atomic_write.cpp src/core/local_time.cpp)
+               src/core/atomic_write.cpp src/core/local_time.cpp src/core/screen_frames.cpp)
 target_compile_options(stash_test PRIVATE -Wall -Wextra)
 target_include_directories(stash_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(stash_test PRIVATE JPEG::JPEG nlohmann_json::nlohmann_json)
@@ -450,6 +454,11 @@ add_executable(subtitles_test tests/subtitles_test.cpp src/core/subtitles.cpp)
 target_compile_options(subtitles_test PRIVATE -Wall -Wextra)
 target_include_directories(subtitles_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_test(NAME subtitles COMMAND subtitles_test)
+
+add_executable(transcript_test tests/transcript_test.cpp src/core/transcript.cpp)
+target_compile_options(transcript_test PRIVATE -Wall -Wextra)
+target_include_directories(transcript_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_test(NAME transcript COMMAND transcript_test)
 
 add_executable(deinflect_test tests/deinflect_test.cpp src/core/deinflect.cpp)
 target_compile_options(deinflect_test PRIVATE -Wall -Wextra)

@@ -93,9 +93,17 @@ struct BufferSettings {
     // then runs while the user is still watching, taking CPU, or the GPU
     // and its memory from a game.
     bool stash_transcribe = false;
+    // Whether a screenshot is kept every screenshot_seconds while it
+    // records, so a card's picture can be picked from around the line, not
+    // only the moment the shortcut was pressed. Between
+    // MIN_SCREENSHOT_SECONDS and MAX_SCREENSHOT_SECONDS.
+    bool screenshots = true;
+    int screenshot_seconds = 3;
 
     static constexpr int MIN_SECONDS = 10;
     static constexpr int MAX_SECONDS = 120;
+    static constexpr int MIN_SCREENSHOT_SECONDS = 1;
+    static constexpr int MAX_SCREENSHOT_SECONDS = 60;
 };
 
 // The Anki category: where captures are added as cards

@@ -288,16 +288,26 @@ void WrappedText::draw_line(const Line& line, int x, int baseline, bool on_selec
         const char* piece = full_text.data() + from;
         const int len = static_cast<int>(piece_end - from);
 
+        set_font(runs[r].style);
+        const double piece_w = fl_width(piece, len);
+        // The selection's highlight takes its place
+        const std::optional<Fl_Color>& background = runs[r].style.background;
+        if (background && !on_selection){
+            fl_color(active_r() ? *background : fl_inactive(*background));
+            // Rounded out, so pieces side by side leave no gap between them
+            const int left = static_cast<int>(piece_x), right = static_cast<int>(piece_x + piece_w + 0.5);
+            fl_rectf(left, baseline - line.baseline, right - left, line.h);
+        }
+
         Fl_Color color = runs[r].style.color;
         if (!active_r()) color = fl_inactive(color);
         // Readable on the highlight, e.g. white on dark blue
         if (on_selection) color = fl_contrast(color, selection_color());
-        set_font(runs[r].style);
         fl_color(color);
         // This fl_draw() draws the text as is: no '@' symbols, no '&' underlines
         fl_draw(piece, len, static_cast<int>(piece_x), baseline);
 
-        piece_x += fl_width(piece, len);
+        piece_x += piece_w;
         from = piece_end;
     }
 }

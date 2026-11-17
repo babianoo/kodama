@@ -6,6 +6,7 @@
 #include <stop_token>
 #include <string>
 
+#include "core/transcript.h"
 #include "core/whisper_models.h"
 
 // whisper.h is only included in transcriber.cpp, so what includes this
@@ -46,16 +47,17 @@ public:
     Transcriber(const Transcriber&) = delete;
     Transcriber& operator=(const Transcriber&) = delete;
 
-    // The text spoken in samples, trimmed; empty if there's none. language
-    // is a code like "ja", or "auto" to detect it. Loads model first if
-    // it isn't the one loaded, or was loaded with another gpu.
+    // The text spoken in samples, trimmed, with the words whisper wasn't
+    // sure of; empty if there's none. language is a code like "ja", or
+    // "auto" to detect it. Loads model first if it isn't the one loaded,
+    // or was loaded with another gpu.
     // Requesting stop on stop makes it throw TranscriptionCancelled, about
     // half a second later while transcribing (with base). Loading can't be
     // stopped partway, so then it throws once the model is loaded.
     // Throws std::runtime_error if model isn't installed, can't be loaded,
     // or whisper fails.
-    std::string transcribe(const WhisperModel& model, bool gpu, std::span<const float> samples,
-                           const std::string& language = "ja", std::stop_token stop = {});
+    Transcript transcribe(const WhisperModel& model, bool gpu, std::span<const float> samples,
+                          const std::string& language = "ja", std::stop_token stop = {});
 
     // Loads model unless it's the one loaded, with the same gpu, so
     // transcribe() can start right away. Can't be stopped partway. Throws

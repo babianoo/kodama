@@ -133,7 +133,8 @@ CaptureWindow::CaptureWindow(SettingsStore& settings, SharedTranscriber& transcr
         CaptureWindow* self = static_cast<CaptureWindow*>(data);
         // Back and forth between whisper's transcript and the subtitles'
         const bool showing_subtitles = self->panels->text() == self->subtitle_text;
-        self->panels->show_text(showing_subtitles ? self->whisper_text : self->subtitle_text);
+        if (showing_subtitles) self->show_whisper_text();
+        else self->panels->show_text(self->subtitle_text);
         self->whisper_btn->label(showing_subtitles ? "Use Subtitles'" : "Use Whisper's");
         self->panels->auto_translate(self->settings.get());
     }, this);
@@ -228,9 +229,9 @@ CaptureWindow::~CaptureWindow(){
     // Their results are never handled: Fl::run() has returned by now.
 }
 
-void CaptureWindow::open(std::vector<float> new_audio, int new_rate, int selection_seconds, Image new_screenshot,
+void CaptureWindow::open(std::vector<float> new_audio, int new_rate, int selection_seconds, std::vector<ScreenFrame> new_frames,
                          std::string new_screenshot_error, std::string new_title,
-                         std::function<void()> new_on_card_added, std::string transcript,
+                         std::function<void()> new_on_card_added, Transcript transcript,
                          double new_captured_at){
     stop_playing();
     captured_at = new_captured_at > 0 ? new_captured_at : clock_now();
@@ -240,7 +241,7 @@ void CaptureWindow::open(std::vector<float> new_audio, int new_rate, int selecti
     on_card_added = std::move(new_on_card_added);
     // Its text would be of the capture there was
     cancel_transcription();
-    screenshot = std::move(new_screenshot);
+    frames = std::move(new_frames);
     screenshot_error = std::move(new_screenshot_error);
 
     audio = std::move(new_audio);
@@ -254,7 +255,7 @@ void CaptureWindow::open(std::vector<float> new_audio, int new_rate, int selecti
     subtitle_track->duration(static_cast<double>(audio.size()) / rate);
     subtitle_track->highlight(0, 0);
     whisper_btn->hide();
-    whisper_text.clear();
+    whisper_text = {};
     subtitle_text.clear();
     if (!subtitles.empty()){
         if (video_minus_clock) set_sync(captured_at + *video_minus_clock);
@@ -263,7 +264,7 @@ void CaptureWindow::open(std::vector<float> new_audio, int new_rate, int selecti
                                               video_minus_clock ? "" : " · Transcribe a line to sync them").c_str());
     }
 
-    if (transcript.empty())
+    if (transcript.text.empty())
         panels->show_note("Press Enter to turn the selection into text, or Space to hear it first.");
     else {
         // Enter transcribes it again, e.g. after changing the selection
@@ -441,7 +442,7 @@ void CaptureWindow::on_job_done(void* data){
 
     if (!result->error.empty())
         self->panels->show_note(std::format("Couldn't turn the speech into text: {}", result->error));
-    else if (result->text.empty()) self->panels->show_note("No speech found in the selection.");
+    else if (result->text.text.empty()) self->panels->show_note("No speech found in the selection.");
     else self->show_transcript(result->text);
     self->refresh_transcribe_button();
 }
@@ -464,9 +465,15 @@ void CaptureWindow::add_to_anki(){
     panels->fill(draft);
     draft.audio.assign(audio.begin() + static_cast<std::ptrdiff_t>(begin), audio.begin() + static_cast<std::ptrdiff_t>(end));
     draft.rate = rate;
-    // A copy: more than one card can be made from a capture
-    draft.screenshot = screenshot;
+    // A copy, which shares the pictures: more than one card can be made
+    // from a capture. The one shown at first is of the selection's
+    // middle, where the line is.
+    draft.frames = frames;
     draft.screenshot_error = screenshot_error;
+    draft.captured_at = captured_at;
+    const double length = static_cast<double>(audio.size()) / rate;
+    const double middle = static_cast<double>(begin + end) / 2 / rate;
+    draft.frame = nearest_frame(frames, captured_at - length + middle);
 
     if (!card_win) card_win = std::make_unique<CardWindow>(settings);
     card_win->open(std::move(draft), on_card_added);
@@ -488,20 +495,26 @@ void CaptureWindow::on_close(Fl_Widget*, void* data){
     self->waveform->audio({}, self->rate);
     self->audio.clear();
     self->audio.shrink_to_fit();
-    self->screenshot = {};
+    self->frames.clear();
     self->panels->clear();
-    self->whisper_text.clear();
+    self->whisper_text = {};
     self->subtitle_text.clear();
     self->on_card_added = {};
 }
 
-void CaptureWindow::show_transcript(const std::string& transcript){
-    whisper_text = transcript;
+void CaptureWindow::show_whisper_text(){
+    panels->show_text(whisper_text.text, whisper_text.unsure);
+}
+
+void CaptureWindow::show_transcript(const Transcript& new_transcript){
+    // A copy first: it may be whisper_text itself
+    const std::string transcript = new_transcript.text;
+    whisper_text = new_transcript;
     subtitle_text.clear();
     whisper_btn->hide();
     subtitle_track->highlight(0, 0);
     const auto show_whisper = [&]{
-        panels->show_text(transcript);
+        show_whisper_text();
         panels->auto_translate(settings.get());
     };
     const auto [begin, end] = waveform->selection();
@@ -556,7 +569,7 @@ void CaptureWindow::use_subtitle_line(size_t index){
     panels->auto_translate(settings.get());
     subtitle_info->copy_label("Picked from the subtitles");
     subtitle_info->redraw();
-    if (!whisper_text.empty() && whisper_text != subtitle_text){
+    if (!whisper_text.text.empty() && whisper_text.text != subtitle_text){
         whisper_btn->label("Use Whisper's");
         whisper_btn->show();
     } else whisper_btn->hide();
@@ -598,13 +611,13 @@ void CaptureWindow::import_subtitles(){
     show_subtitle_area(true);
 
     // The transcript shown already is looked for in them
-    if (!whisper_text.empty()) show_transcript(whisper_text);
+    if (!whisper_text.text.empty()) show_transcript(whisper_text);
 }
 
 void CaptureWindow::remove_subtitles(){
     // Back to what whisper heard, if a line of theirs is shown
-    if (!whisper_text.empty() && panels->text() != whisper_text){
-        panels->show_text(whisper_text);
+    if (!whisper_text.text.empty() && panels->text() != whisper_text.text){
+        show_whisper_text();
         panels->auto_translate(settings.get());
     }
     subtitle_text.clear();

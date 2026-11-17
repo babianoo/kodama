@@ -29,6 +29,10 @@ static constexpr int TEXT_W = 360;
 // press, are smaller and grey.
 static const TextStyle TEXT{FL_HELVETICA, 24};
 static const TextStyle NOTE{FL_HELVETICA, 14, DIM};
+// A word in the text that may be wrong, e.g. one whisper wasn't sure it
+// heard right: black on pale yellow, like a highlighter's, readable
+// whatever the window's colors are
+static const TextStyle UNSURE{FL_HELVETICA, 24, FL_BLACK, fl_rgb_color(255, 228, 140)};
 
 LookupPanels::LookupPanels(int x, int y, int w, int h){
     // Both blend into the window, like the main window's results
@@ -54,14 +58,28 @@ LookupPanels::LookupPanels(int x, int y, int w, int h){
     lookup_scroll->end();
 }
 
-void LookupPanels::show_text(const std::string& text){
-    set_text({{text, TEXT}});
+void LookupPanels::show_text(const std::string& text, std::span<const UnsureWord> unsure){
+    // The text between the unsure words as it is, and those highlighted.
+    // They're in order and inside it, but a bad one is skipped anyway.
+    std::vector<TextSpan> spans;
+    size_t at = 0;
+    for (const UnsureWord& word : unsure){
+        if (word.begin < at || word.begin >= word.end || word.end > text.size()) continue;
+        spans.push_back({text.substr(at, word.begin - at), TEXT});
+        spans.push_back({text.substr(word.begin, word.end - word.begin), UNSURE});
+        at = word.end;
+    }
+    spans.push_back({text.substr(at), TEXT});
+    set_text(spans);
+
     text_ = text;
     entry.reset();
     keyword.clear();
     // A lookup still running is of the text there was
     ++latest;
-    set_panel({{"Select a word in the text to look it up.", NOTE}});
+    if (unsure.empty()) set_panel({{"Select a word in the text to look it up.", NOTE}});
+    else set_panel({{"Select a word in the text to look it up.\n\n"
+                     "Whisper wasn't sure it heard the highlighted words right: listen for them.", NOTE}});
     if (change_listener) change_listener();
 }
 

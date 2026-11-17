@@ -78,7 +78,7 @@ StashEntry stash_line(const fs::path& dir, const StashCapture& capture){
     StashEntry entry{.id = id, .time = capture.time, .app = capture.app, .rate = capture.rate,
                      .selection_seconds = capture.selection_seconds,
                      .screenshot_error = capture.screenshot_error, .transcript = {}, .transcript_error = {},
-                     .seconds = static_cast<double>(capture.audio.size()) / capture.rate, .bytes = 0};
+                     .transcript_unsure = {}, .seconds = static_cast<double>(capture.audio.size()) / capture.rate, .bytes = 0};
     try {
         write_file_atomically(folder / AUDIO_FILE, as_text(encode_wav(capture.audio, capture.rate)));
         if (capture.screenshot && !capture.screenshot->empty()){
@@ -88,10 +88,18 @@ StashEntry stash_line(const fs::path& dir, const StashCapture& capture){
         } else if (entry.screenshot_error.empty()){
             entry.screenshot_error = "No screenshot was taken";
         }
+        // As they were kept: they're compressed already
+        json frames = json::array();
+        for (size_t i = 0; i < capture.frames.size(); ++i){
+            const ScreenFrame& frame = capture.frames[i];
+            const std::string file = std::format("frame-{:02}.jpg", i + 1);
+            write_file_atomically(folder / file, as_text(frame.jpeg_bytes(SCREENSHOT_QUALITY)));
+            frames.push_back({{"file", file}, {"seconds_before", std::max(0.0, capture.precise_time - frame.time)}});
+        }
         const json info = {{"time", entry.time}, {"app", entry.app}, {"rate", entry.rate},
                            {"selection_seconds", entry.selection_seconds},
                            {"screenshot_error", entry.screenshot_error}, {"transcript", ""},
-                           {"transcript_error", ""}, {"version", VERSION}};
+                           {"transcript_error", ""}, {"frames", frames}, {"version", VERSION}};
         write_file_atomically(folder / INFO_FILE, info.dump(2));
     } catch (...){
         std::error_code ignored;
@@ -100,6 +108,31 @@ StashEntry stash_line(const fs::path& dir, const StashCapture& capture){
     }
     entry.bytes = folder_bytes(folder);
     return entry;
+}
+
+// transcript_unsure as stash.json has it
+static json unsure_json(std::span<const UnsureWord> unsure){
+    json words = json::array();
+    for (const UnsureWord& word : unsure) words.push_back({word.begin, word.end, word.p});
+    return words;
+}
+
+// info's transcript_unsure, leaving out any that aren't words of
+// transcript, e.g. from a file changed by hand
+static std::vector<UnsureWord> read_unsure(const json& info, std::string_view transcript){
+    std::vector<UnsureWord> unsure;
+    if (!info.contains("transcript_unsure") || !info.at("transcript_unsure").is_array()) return unsure;
+    for (const json& item : info.at("transcript_unsure")){
+        try {
+            const UnsureWord word{.begin = item.at(0).get<size_t>(), .end = item.at(1).get<size_t>(),
+                                  .p = item.at(2).get<float>()};
+            const size_t after = unsure.empty() ? 0 : unsure.back().end;
+            if (word.begin >= after && word.begin < word.end && word.end <= transcript.size()) unsure.push_back(word);
+        } catch (const json::exception&){
+            // Not three numbers
+        }
+    }
+    return unsure;
 }
 
 // Throws for a stash.json that's missing, broken or from a newer version
@@ -118,6 +151,7 @@ static StashEntry read_entry(const fs::path& folder){
     entry.screenshot_error = info.value("screenshot_error", "");
     entry.transcript = info.value("transcript", "");
     entry.transcript_error = info.value("transcript_error", "");
+    entry.transcript_unsure = read_unsure(info, entry.transcript);
     if (entry.rate <= 0) throw std::runtime_error("no sample rate");
 
     // The WAV header is 44 bytes, then 2 bytes a sample
@@ -161,7 +195,7 @@ StashedLine load_stashed(const fs::path& dir, const StashEntry& entry){
     }
     line.selection_seconds = entry.selection_seconds;
     line.screenshot_error = entry.screenshot_error;
-    line.transcript = entry.transcript;
+    line.transcript = {.text = entry.transcript, .unsure = entry.transcript_unsure};
     if (line.screenshot_error.empty()){
         try {
             line.screenshot = decode_jpeg(read_file(folder / SCREENSHOT_FILE));
@@ -169,11 +203,30 @@ StashedLine load_stashed(const fs::path& dir, const StashEntry& entry){
             line.screenshot_error = e.what();
         }
     }
+
+    // Only the audio matters: a frame that can't be read is left out
+    try {
+        std::ifstream in(folder / INFO_FILE);
+        const json info = json::parse(in);
+        if (info.contains("frames"))
+            for (const json& item : info.at("frames")){
+                try {
+                    const std::string file = item.at("file").get<std::string>();
+                    if (!plain_name(file)) continue;
+                    const double before = item.at("seconds_before").get<double>();
+                    line.frames.push_back(jpeg_frame(read_file(folder / file), static_cast<double>(entry.time) - before));
+                } catch (const std::exception& e){
+                    std::cerr << std::format("Skipping a screenshot of the stashed line {}: {}\n", entry.id, e.what());
+                }
+            }
+    } catch (const std::exception& e){
+        std::cerr << std::format("Couldn't read the screenshots of the stashed line {}: {}\n", entry.id, e.what());
+    }
     return line;
 }
 
 void set_stash_transcript(const fs::path& dir, std::string_view id, std::string_view transcript,
-                          std::string_view error){
+                          std::string_view error, std::span<const UnsureWord> unsure){
     if (!plain_name(id)) throw std::runtime_error("That isn't a stashed line");
     const fs::path file = dir / id / INFO_FILE;
     // Not written if it's gone: write_file_atomically would make the
@@ -184,6 +237,7 @@ void set_stash_transcript(const fs::path& dir, std::string_view id, std::string_
     in.close();
     info["transcript"] = transcript;
     info["transcript_error"] = error;
+    info["transcript_unsure"] = unsure_json(unsure);
     write_file_atomically(file, info.dump(2));
 }
 

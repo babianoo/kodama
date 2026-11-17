@@ -42,7 +42,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(AnkiSettings, deck, note_type, w
                                                 picture_quality, crop_x, crop_y, crop_w, crop_h)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSettings, auto_translate, deepl_key, last_api)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BufferSettings, enabled, seconds, selection_seconds, shortcut,
-                                                stash_shortcut, stash_chime, stash_transcribe)
+                                                stash_shortcut, stash_chime, stash_transcribe, screenshots,
+                                                screenshot_seconds)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(DictionarySettings, update_declined)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GeneralSettings, scroll_speed)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(HistorySettings, capacity)
@@ -91,6 +92,8 @@ void sanitize(Settings& settings){
     BufferSettings& buffer = settings.buffer;
     buffer.seconds = std::clamp(buffer.seconds, BufferSettings::MIN_SECONDS, BufferSettings::MAX_SECONDS);
     buffer.selection_seconds = std::clamp(buffer.selection_seconds, 1, buffer.seconds);
+    buffer.screenshot_seconds = std::clamp(buffer.screenshot_seconds, BufferSettings::MIN_SCREENSHOT_SECONDS,
+                                           BufferSettings::MAX_SCREENSHOT_SECONDS);
     // Written the one way, so a change can be told by comparing. One that
     // can't be read is replaced, so there's always one.
     const std::optional<Shortcut> shortcut = parse_shortcut(buffer.shortcut);
