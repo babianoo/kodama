@@ -221,7 +221,7 @@ static void test_zip(const fs::path& folder){
 
 static void test_import(const fs::path& folder){
     const fs::path zip = make_dictionary_zip(folder);
-    const fs::path file = folder / "made" / "test.hsdict";
+    const fs::path file = folder / "made" / "test.kdict";
     size_t calls = 0, last_done = 0, last_total = 0;
     const DictionaryInfo info = import_dictionary(zip, file, [&](size_t done, size_t total){
         ++calls;
@@ -230,7 +230,7 @@ static void test_import(const fs::path& folder){
     });
     CHECK(info.title == "Test [2026-10-03]" && info.revision == "2026.10.03.0");
     CHECK(calls == 3 && last_done == 2 && last_total == 2);
-    CHECK(fs::exists(file) && !fs::exists(folder / "made" / "test.hsdict.part"));
+    CHECK(fs::exists(file) && !fs::exists(folder / "made" / "test.kdict.part"));
     // 400 rows of 500 letters each, compressed
     CHECK(fs::file_size(file) < 60000);
 
@@ -280,25 +280,25 @@ static void test_import(const fs::path& folder){
     write_file(folder / "bad.zip", make_zip({{"index.json", R"({"title": "T", "revision": "1", "format": 3})", false},
                                              {"term_bank_1.json", R"([["紙", "かみ"]])", false}}));
     CHECK(THROWS(import_dictionary(folder / "bad.zip", file)));
-    CHECK(!fs::exists(folder / "made" / "test.hsdict.part"));
+    CHECK(!fs::exists(folder / "made" / "test.kdict.part"));
     CHECK(Dictionary(file).row_count() == 412);
 
     // Stopped before it starts
     std::stop_source stop;
     stop.request_stop();
-    CHECK(THROWS(import_dictionary(zip, folder / "stopped.hsdict", {}, stop.get_token())));
-    CHECK(!fs::exists(folder / "stopped.hsdict"));
+    CHECK(THROWS(import_dictionary(zip, folder / "stopped.kdict", {}, stop.get_token())));
+    CHECK(!fs::exists(folder / "stopped.kdict"));
 
     // Not a dictionary file, or half of one
     CHECK(THROWS(Dictionary{zip}));
     const std::string bytes = read_file(file);
-    write_file(folder / "half.hsdict", bytes.substr(0, bytes.size() / 2));
-    CHECK(THROWS(Dictionary(folder / "half.hsdict")));
-    CHECK(THROWS(Dictionary(folder / "none.hsdict")));
+    write_file(folder / "half.kdict", bytes.substr(0, bytes.size() / 2));
+    CHECK(THROWS(Dictionary(folder / "half.kdict")));
+    CHECK(THROWS(Dictionary(folder / "none.kdict")));
 }
 
 static void test_lookup(const fs::path& folder){
-    const Dictionary dictionary(folder / "made" / "test.hsdict");
+    const Dictionary dictionary(folder / "made" / "test.kdict");
 
     // As written
     WordLookup found = look_up_in(dictionary, "紙", false);
@@ -420,7 +420,7 @@ static void test_frequencies(const fs::path& folder){
     const fs::path zip = folder / "frequencies.zip";
     write_file(zip, make_zip({{"index.json", index.dump(), false}, {"term_meta_bank_2.json", bank2.dump(), true},
                               {"term_meta_bank_1.json", bank1.dump(), true}}));
-    const fs::path file = folder / "made" / "test.hsfreq";
+    const fs::path file = folder / "made" / "test.kfreq";
     const FrequencyInfo info = import_frequencies(zip, file);
     CHECK(info.title == "JPDBv2㋕" && info.revision == "JPDB v2.2 Frequency Kana 2024-10-13");
     CHECK(!fs::exists(file.string() + ".part"));
@@ -453,17 +453,17 @@ static void test_frequencies(const fs::path& folder){
 
     // Not one, or damaged
     write_file(folder / "no_freq.zip", make_zip({{"index.json", index.dump(), false}}));
-    CHECK(THROWS(import_frequencies(folder / "no_freq.zip", folder / "made" / "none.hsfreq")));
-    CHECK(THROWS(import_frequencies(make_dictionary_zip(folder), folder / "made" / "none.hsfreq")));
+    CHECK(THROWS(import_frequencies(folder / "no_freq.zip", folder / "made" / "none.kfreq")));
+    CHECK(THROWS(import_frequencies(make_dictionary_zip(folder), folder / "made" / "none.kfreq")));
     std::string bytes = read_file(file);
-    write_file(folder / "cut.hsfreq", bytes.substr(0, bytes.size() - 10));
-    CHECK(THROWS(FrequencyList(folder / "cut.hsfreq")));
-    CHECK(THROWS(FrequencyList(folder / "made" / "test.hsdict")));
-    CHECK(THROWS(FrequencyList(folder / "missing.hsfreq")));
+    write_file(folder / "cut.kfreq", bytes.substr(0, bytes.size() - 10));
+    CHECK(THROWS(FrequencyList(folder / "cut.kfreq")));
+    CHECK(THROWS(FrequencyList(folder / "made" / "test.kdict")));
+    CHECK(THROWS(FrequencyList(folder / "missing.kfreq")));
 }
 
 int main(){
-    const fs::path folder = fs::temp_directory_path() / std::format("hearstash_dictionary_test_{}",
+    const fs::path folder = fs::temp_directory_path() / std::format("kodama_dictionary_test_{}",
         std::chrono::steady_clock::now().time_since_epoch().count());
     fs::create_directories(folder);
     try {

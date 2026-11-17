@@ -23,7 +23,7 @@ static const CardContent CARD{
     .word = "悩む", .reading = "なやむ", .meaning = "[Godan verb with 'mu' ending] [Intransitive verb]\n1. to be worried; to be troubled\n2. to suffer (from)",
     .glossary_html = {},
     .sentence = "私だってもうちょっと悩んでたかも", .highlight = "悩んでた",
-    .audio_file = "hearstash_1.wav", .picture_file = "hearstash_1.jpg",
+    .audio_file = "kodama_1.wav", .picture_file = "kodama_1.jpg",
 };
 
 // Like the Immersion Deck: the sentence on the front, everything about
@@ -49,8 +49,8 @@ static void test_immersion_layout(){
           "<li data-sc-content=\"sense\" style=\"list-style-type: &quot;②&quot;;\">"
           "<ul data-sc-content=\"glossary\"><li>to suffer (from)</li></ul></li>"
           "</ol></li>"
-          "</ul></span></li></ol></div><br><br><a href=\"\"></a><br>[sound:hearstash_1.wav]");
-    CHECK(field(fields, "Picture") == "<img alt=\"snapshot\" src=\"hearstash_1.jpg\">");
+          "</ul></span></li></ol></div><br><br><a href=\"\"></a><br>[sound:kodama_1.wav]");
+    CHECK(field(fields, "Picture") == "<img alt=\"snapshot\" src=\"kodama_1.jpg\">");
 }
 
 // A field each, like note types made for mining
@@ -68,7 +68,7 @@ static void test_a_field_each(){
     CHECK(field(fields, "Reading") == "なやむ");
     CHECK(field(fields, "Meaning").starts_with("<div style=\"text-align: left;\" class=\"yomitan-glossary\">"));
     CHECK(field(fields, "Meaning").ends_with("</div><br><br><a href=\"\"></a>"));
-    CHECK(field(fields, "SentenceAudio") == "[sound:hearstash_1.wav]");
+    CHECK(field(fields, "SentenceAudio") == "[sound:kodama_1.wav]");
 }
 
 static void test_details(){

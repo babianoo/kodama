@@ -22,9 +22,9 @@ inline constexpr HotkeyAction HOTKEY_ACTIONS[HOTKEY_ACTION_COUNT] = {HotkeyActio
 // key), so the user binds a key there to the command hotkey_command()
 // gives for each, e.g. in hyprland.conf:
 //
-//   bind = SUPER, A, exec, /path/to/hearstash --capture
-//   bind = SUPER, S, exec, /path/to/hearstash --read-screen
-//   bind = SUPER, Z, exec, /path/to/hearstash --stash
+//   bind = SUPER, A, exec, /path/to/kodama --capture
+//   bind = SUPER, S, exec, /path/to/kodama --read-screen
+//   bind = SUPER, Z, exec, /path/to/kodama --stash
 //
 // That command passes the press on to the running app through a socket in
 // $XDG_RUNTIME_DIR, which only the user can open.

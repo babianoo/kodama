@@ -110,11 +110,11 @@ struct BufferSettings {
 struct AnkiSettings {
     // As Anki names it. Empty when none is chosen.
     std::string deck;
-    // As Anki names it. The app's own, HEARSTASH_NOTE_TYPE, unless another
+    // As Anki names it. The app's own, KODAMA_NOTE_TYPE, unless another
     // is chosen; sanitize() puts it back when it's empty.
-    std::string note_type = "Hearstash";
+    std::string note_type = "Kodama";
     // The fields of note_type that get each part of a card. Empty for one
-    // that goes nowhere. By default, the Hearstash note type's.
+    // that goes nowhere. By default, the Kodama note type's.
     std::string word_field = "Word";
     std::string reading_field = "Reading";
     std::string meaning_field = "Meaning";

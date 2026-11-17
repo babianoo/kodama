@@ -14,7 +14,7 @@
 
 #include "core/anki_connect.h"
 #include "core/card_format.h"
-#include "core/hearstash_note_type.h"
+#include "core/kodama_note_type.h"
 #include "core/media_encoding.h"
 #include "core/settings.h"
 #include "ui/clipboard_input.h"
@@ -34,7 +34,7 @@ static constexpr int CROP_H = 330;
 // small and is plenty on a phone
 static constexpr int PICTURE_MAX_H = 480;
 // Every card the app adds gets it, so they can be found in Anki
-static constexpr const char* TAG = "hearstash";
+static constexpr const char* TAG = "kodama";
 
 // A label on the left, at the field's first line
 static void label(int y, const char* text){
@@ -230,7 +230,7 @@ void CardWindow::add(){
         win.cursor(FL_CURSOR_WAIT);
         Fl::flush();
         // The first card of the app's own note type adds it to Anki
-        if (anki.note_type == HEARSTASH_NOTE_TYPE) ensure_hearstash_note_type();
+        if (anki.note_type == KODAMA_NOTE_TYPE) ensure_kodama_note_type();
         // Stored first, so the note can show them. If the note is then
         // refused, they stay in the media folder unused until Anki's Check
         // Media removes them.

@@ -4,15 +4,15 @@
 
 Register the shortcuts through the XDG **GlobalShortcuts portal**
 (`org.freedesktop.portal.GlobalShortcuts`), and keep the commands
-(`hearstash --capture`, `--read-screen` and `--stash`) as the fallback
+(`kodama --capture`, `--read-screen` and `--stash`) as the fallback
 for desktops whose portal doesn't offer it. Not done yet; this note
 records the decision for when it is.
 
 ## Today
 
 Wayland lets no app grab keys, so on Linux the user binds a key in their
-desktop to each of `hearstash --capture`, `hearstash --read-screen` and
-`hearstash --stash`. Each command passes the press to the running app
+desktop to each of `kodama --capture`, `kodama --read-screen` and
+`kodama --stash`. Each command passes the press to the running app
 through a socket in `$XDG_RUNTIME_DIR` (`src/ui/global_hotkey.cpp`). It works everywhere, but the user has to find
 their desktop's shortcut settings and type a command with the right path.
 On Windows the app registers the key itself (`RegisterHotKey`), so Linux is
@@ -31,7 +31,7 @@ the key:
 3. Each press arrives as an `Activated` signal on the session.
 4. The desktop remembers the binding across restarts; the user changes it
    in the desktop's own shortcut settings, where it's listed under
-   Hearstash.
+   Kodama.
 
 ## Desktop support
 
@@ -56,11 +56,11 @@ commands to bind, as it does now.
   the UI thread.
 - The portal identifies an unsandboxed app by its `.desktop` file id; KDE
   names and saves the shortcut under it. So the app needs a
-  `hearstash.desktop` installed (an install rule in `CMakeLists.txt`), or,
+  `kodama.desktop` installed (an install rule in `CMakeLists.txt`), or,
   on xdg-desktop-portal 1.19+, to call
-  `org.freedesktop.host.portal.Registry.Register` with `hearstash` before
+  `org.freedesktop.host.portal.Registry.Register` with `kodama` before
   opening the session. Without one, the binding may not stick.
-- The window's app id is already `hearstash` (FLTK takes it from argv[0]
+- The window's app id is already `kodama` (FLTK takes it from argv[0]
   in `main_win.show(argc, argv)`), which matches.
 - Errors from the portal (no backend, user cancelled the dialog) fall back
   to the socket and the command in Settings, not to a failure.

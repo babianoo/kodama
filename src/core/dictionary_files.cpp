@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 fs::path shipped_dictionary_path(){
     const fs::path program = program_dir();
     const fs::path beside = program / DICTIONARY_FILE_NAME;
-    const fs::path shared = program.parent_path() / "share" / "hearstash" / DICTIONARY_FILE_NAME;
+    const fs::path shared = program.parent_path() / "share" / "kodama" / DICTIONARY_FILE_NAME;
     std::error_code error;
     if (!fs::exists(beside, error) && fs::exists(shared, error)) return shared;
     return beside;

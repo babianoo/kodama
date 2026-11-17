@@ -1,4 +1,4 @@
-# Hearstash
+# Kodama
 
 Turn words you hear into flashcards.
 
@@ -61,7 +61,7 @@ Installed on the system:
   about 5 times faster. Building it takes the Vulkan headers and loader,
   `glslc` and SPIRV-Headers (Arch: `vulkan-headers`, `vulkan-icd-loader`,
   `shaderc`, `spirv-headers`). It's used when they're all found; pass
-  `-DHEARSTASH_GPU=OFF` to build for the CPU only, or `ON` to fail without
+  `-DKODAMA_GPU=OFF` to build for the CPU only, or `ON` to fail without
   them. The app then needs the Vulkan loader to start, which GPU drivers
   install. With no GPU, or not enough free video memory for the model,
   it transcribes on the CPU
@@ -118,30 +118,30 @@ cmake -B build-dist -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOL
 ```
 
 ```bash
-cmake --build build-dist -j --target hearstash
+cmake --build build-dist -j --target kodama
 ```
 
-`build-dist/hearstash.exe` then runs on its own. It only uses DLLs that
+`build-dist/kodama.exe` then runs on its own. It only uses DLLs that
 come with Windows 10 and 11.
 
 ### The dictionary
 
 Configuring also fetches the latest [Jitendex](https://jitendex.org) zip
 (about 40 MB) into the build folder, and the build converts it to
-`jitendex.hsdict` next to the program, which takes about half a minute.
+`jitendex.kdict` next to the program, which takes about half a minute.
 That file is the dictionary the app ships with: **hand it out together
 with the program**, in the same folder. It's the one part of a build
-that isn't Hearstash's code, and it's under its own licence (see
+that isn't Kodama's code, and it's under its own licence (see
 [Sources](#sources)).
 
 - The zip is fetched again once the copy in the build folder is a week
   old, so a build to hand out has a current dictionary.
-- `-DHEARSTASH_DICTIONARY_ZIP=<zip>` converts a zip you already have
+- `-DKODAMA_DICTIONARY_ZIP=<zip>` converts a zip you already have
   instead, e.g. where the build has no network.
-- `-DHEARSTASH_DICTIONARY=OFF` builds none. The app then looks words up
+- `-DKODAMA_DICTIONARY=OFF` builds none. The app then looks words up
   on jisho.org until it has downloaded the dictionary itself.
 - On Windows, the vcpkg triplet needs `zlib` too, and a build with
-  `--target hearstash` needs `--target dictionary` as well.
+  `--target kodama` needs `--target dictionary` as well.
 
 ### Tests
 
@@ -173,7 +173,7 @@ Everything is in **Settings**:
 - **Shortcuts**: the capture, screen capture and stash shortcuts.
 - **Anki**: choose the deck and note type, and which field gets the word,
   reading, meaning, sentence, audio and picture. The note type is
-  Hearstash's own unless you pick another: the sentence on the front, the
+  Kodama's own unless you pick another: the sentence on the front, the
   word, meaning, audio and picture on the back, in large Japanese type. It's
   added to Anki with your first card. With another note type, fields are
   guessed from their names. Needs Anki running with the
@@ -191,14 +191,14 @@ a capture for later.
   Change them in Settings > Shortcuts by pressing the new keys in their
   box.
 - **Linux**: Wayland doesn't let apps grab keys, so bind keys in your
-  desktop to `hearstash --capture`, `hearstash --read-screen` and
-  `hearstash --stash`, which tell the running app what to do. Settings >
+  desktop to `kodama --capture`, `kodama --read-screen` and
+  `kodama --stash`, which tell the running app what to do. Settings >
   Shortcuts shows the commands with the right path. For Hyprland:
 
   ```
-  bind = SUPER, A, exec, /path/to/hearstash --capture
-  bind = SUPER, S, exec, /path/to/hearstash --read-screen
-  bind = SUPER, Z, exec, /path/to/hearstash --stash
+  bind = SUPER, A, exec, /path/to/kodama --capture
+  bind = SUPER, S, exec, /path/to/kodama --read-screen
+  bind = SUPER, Z, exec, /path/to/kodama --stash
   ```
 
   On KDE, add each command in System Settings > Shortcuts > Add New >
@@ -208,16 +208,16 @@ a capture for later.
 
 On wlroots desktops such as Hyprland or Sway, screenshots use
 [grim](https://sr.ht/~emersion/grim/) if it's installed. On KDE,
-Hearstash asks KWin itself for the monitor with the focus, which takes a
+Kodama asks KWin itself for the monitor with the focus, which takes a
 few hundredths of a second. KWin decides which programs may: if it says
-no, Hearstash prints so once, and adding
+no, Kodama prints so once, and adding
 `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` to the
-`.desktop` file that starts Hearstash lets it.
+`.desktop` file that starts Kodama lets it.
 
 Elsewhere (GNOME, X11, or a KWin that says no) screenshots go through
 the desktop's screenshot portal (xdg-desktop-portal), which:
 
-- may ask once whether Hearstash can take screenshots,
+- may ask once whether Kodama can take screenshots,
 - takes all your monitors, not just the one with the video, so crop to
   it as usual (on KDE it's cut down to the monitor with the focus, with
   `kscreen-doctor`),
@@ -238,9 +238,9 @@ the desktop's screenshot portal (xdg-desktop-portal), which:
 4. Select text in the transcript to look it up.
 5. To make a card, press **Add to Anki**, check the fields, crop the
    screenshot to the video (the last crop is remembered), and press
-   **Add**. Cards are tagged `hearstash`.
+   **Add**. Cards are tagged `kodama`.
 
-   While it records, Hearstash also keeps a screenshot every 3 seconds,
+   While it records, Kodama also keeps a screenshot every 3 seconds,
    so you don't have to press the shortcut at the right moment. The card
    starts with the one taken nearest the middle of your selection, and a
    row of the others under it, each with how long before the shortcut it
@@ -303,14 +303,14 @@ runs while you watch, which can slow down a game.
 
 | What | Windows | Linux |
 | --- | --- | --- |
-| `settings.json` | `%APPDATA%\Hearstash` | `$XDG_CONFIG_HOME/Hearstash` (`~/.config/Hearstash`) |
-| `history.json` | `%APPDATA%\Hearstash` | `$XDG_STATE_HOME/Hearstash` (`~/.local/state/Hearstash`) |
-| Stashed lines | `%APPDATA%\Hearstash\stash` | `$XDG_STATE_HOME/Hearstash/stash` (`~/.local/state/Hearstash/stash`) |
-| Whisper models | `%LOCALAPPDATA%\Hearstash\models` | `$XDG_DATA_HOME/Hearstash/models` (`~/.local/share/Hearstash/models`) |
+| `settings.json` | `%APPDATA%\Kodama` | `$XDG_CONFIG_HOME/Kodama` (`~/.config/Kodama`) |
+| `history.json` | `%APPDATA%\Kodama` | `$XDG_STATE_HOME/Kodama` (`~/.local/state/Kodama`) |
+| Stashed lines | `%APPDATA%\Kodama\stash` | `$XDG_STATE_HOME/Kodama/stash` (`~/.local/state/Kodama/stash`) |
+| Whisper models | `%LOCALAPPDATA%\Kodama\models` | `$XDG_DATA_HOME/Kodama/models` (`~/.local/share/Kodama/models`) |
 | Screen reading models | the same, in `ocr` | the same, in `ocr` |
-| The dictionary it shipped with | `jitendex.hsdict`, next to `hearstash.exe` | next to `hearstash`, or in `../share/hearstash` from it |
-| A dictionary it updated to | `%LOCALAPPDATA%\Hearstash\dictionary` | `$XDG_DATA_HOME/Hearstash/dictionary` |
-| The frequency list, once downloaded | `frequencies.hsfreq`, in the same folder | the same |
+| The dictionary it shipped with | `jitendex.kdict`, next to `kodama.exe` | next to `kodama`, or in `../share/kodama` from it |
+| A dictionary it updated to | `%LOCALAPPDATA%\Kodama\dictionary` | `$XDG_DATA_HOME/Kodama/dictionary` |
+| The frequency list, once downloaded | `frequencies.kfreq`, in the same folder | the same |
 
 An unreadable `settings.json` is renamed to `settings.json.bad` rather
 than overwritten.
@@ -339,7 +339,7 @@ The app listens to everything your computer plays, so:
 
 ## Known gaps
 
-- On GNOME, and on KDE when KWin doesn't let Hearstash take screenshots
+- On GNOME, and on KDE when KWin doesn't let Kodama take screenshots
   itself, the screenshot portal makes the capture window take about 2 s
   to open.
 - On Windows, screenshots use GDI; some hardware-accelerated video may
@@ -353,13 +353,13 @@ See [PLAN.md](PLAN.md) for the rest.
 
 ## Sources
 
-Hearstash looks words up in **Jitendex**, and its cards carry Jitendex's
+Kodama looks words up in **Jitendex**, and its cards carry Jitendex's
 entries. The same credits are in the app, under Settings > Sources, with
 the dictionary's age and a button to get the latest one.
 
 - [Jitendex](https://jitendex.org), © Stephen Kraus, is used under the
   [Creative Commons Attribution-ShareAlike 4.0 licence](https://creativecommons.org/licenses/by-sa/4.0/).
-  Hearstash converts it into one file, `jitendex.hsdict`, rearranged so a
+  Kodama converts it into one file, `jitendex.kdict`, rearranged so a
   word is found quickly; its text isn't changed. That file is under the
   same licence, isn't encrypted, and its layout is described in
   [src/core/dictionary.h](src/core/dictionary.h) and
@@ -397,7 +397,7 @@ built from [jpdb.io](https://jpdb.io)'s frequency list by jpdb, Kuuube
 and Gecko. Each word is then shown with it the way Yomitan shows it, e.g.
 `JPDBv2㋕ 312, 19896㋕` for 読む: its rank among the words in jpdb.io's
 corpus (lower is more common) and, marked ㋕, its rank when it's written
-in kana. Its licence isn't stated, so it isn't shipped with Hearstash:
+in kana. Its licence isn't stated, so it isn't shipped with Kodama:
 the app downloads it (about 6 MB, checked against its SHA-1) only when
-you press Download, and converts it to `frequencies.hsfreq`, whose layout
+you press Download, and converts it to `frequencies.kfreq`, whose layout
 is described in [src/core/frequency_list.h](src/core/frequency_list.h).

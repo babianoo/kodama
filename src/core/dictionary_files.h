@@ -20,7 +20,7 @@
 // That copy goes in data_dir()/dictionary, and is used when it's the newer
 // of the two.
 
-inline constexpr const char* DICTIONARY_FILE_NAME = "jitendex.hsdict";
+inline constexpr const char* DICTIONARY_FILE_NAME = "jitendex.kdict";
 // Where to ask for the latest revision when no dictionary is installed to
 // say where. Jitendex's own, as its index.json gives it.
 inline constexpr const char* DICTIONARY_INDEX_URL = "https://jitendex.org/static/yomitan.json";
@@ -29,7 +29,7 @@ inline constexpr const char* DICTIONARY_INDEX_URL = "https://jitendex.org/static
 inline constexpr int DICTIONARY_MAX_AGE_DAYS = 30;
 
 // The one shipped with the app: next to the program, or, installed the
-// Unix way with the program in bin, in share/hearstash beside that. The
+// Unix way with the program in bin, in share/kodama beside that. The
 // first of those there is, or the first if there's neither. Throws
 // std::runtime_error if the program's folder can't be found.
 std::filesystem::path shipped_dictionary_path();

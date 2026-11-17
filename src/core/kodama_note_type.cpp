@@ -1,4 +1,4 @@
-#include "core/hearstash_note_type.h"
+#include "core/kodama_note_type.h"
 
 #include <algorithm>
 #include <span>
@@ -115,19 +115,19 @@ static bool is_one_of(std::string_view text, std::span<const char* const> olds){
     return std::ranges::any_of(olds, [&](const char* old){ return trimmed(text) == trimmed(old); });
 }
 
-void ensure_hearstash_note_type(){
+void ensure_kodama_note_type(){
     const std::vector<std::string> names = anki_model_names();
-    if (std::ranges::find(names, HEARSTASH_NOTE_TYPE) == names.end()){
-        anki_create_model(HEARSTASH_NOTE_TYPE, hearstash_fields(), CSS, {{.name = CARD_NAME, .front = FRONT, .back = BACK}});
+    if (std::ranges::find(names, KODAMA_NOTE_TYPE) == names.end()){
+        anki_create_model(KODAMA_NOTE_TYPE, kodama_fields(), CSS, {{.name = CARD_NAME, .front = FRONT, .back = BACK}});
         return;
     }
 
     // One from an older version of the app is brought up to date, each
     // half only if it's still as the app made it
-    if (is_one_of(anki_model_css(HEARSTASH_NOTE_TYPE), OLD_CSS)) anki_update_model_css(HEARSTASH_NOTE_TYPE, CSS);
-    for (const AnkiCardTemplate& card : anki_model_templates(HEARSTASH_NOTE_TYPE)){
+    if (is_one_of(anki_model_css(KODAMA_NOTE_TYPE), OLD_CSS)) anki_update_model_css(KODAMA_NOTE_TYPE, CSS);
+    for (const AnkiCardTemplate& card : anki_model_templates(KODAMA_NOTE_TYPE)){
         // The front hasn't changed between versions, so it's kept
         if (card.name == CARD_NAME && is_one_of(card.back, OLD_BACKS))
-            anki_update_model_templates(HEARSTASH_NOTE_TYPE, {{.name = CARD_NAME, .front = card.front, .back = BACK}});
+            anki_update_model_templates(KODAMA_NOTE_TYPE, {{.name = CARD_NAME, .front = card.front, .back = BACK}});
     }
 }

@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 
 // ---- The file ----
 //
-//   "HSDICT\0\0"                     8 bytes
+//   "KDICT\0\0\0"                   8 bytes
 //   u32 version, u32 section count
 //   MAX_SECTIONS times:              32 bytes each, unused ones all 0
 //     u32 id, u32 packed (1 if the section is deflated with zlib)
@@ -43,7 +43,7 @@ namespace fs = std::filesystem;
 //   BLOCKS    per block: u64 offset in the file, u32 size in the file,
 //             u32 size unpacked
 
-static constexpr char MAGIC[8] = {'H', 'S', 'D', 'I', 'C', 'T', 0, 0};
+static constexpr char MAGIC[8] = {'K', 'D', 'I', 'C', 'T', 0, 0, 0};
 static constexpr std::uint32_t VERSION = 1;
 static constexpr size_t MAX_SECTIONS = 8;
 static constexpr size_t HEADER_SIZE = sizeof(MAGIC) + 8 + MAX_SECTIONS * 32;

@@ -24,7 +24,7 @@
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-static constexpr char MAGIC[8] = {'H', 'S', 'F', 'R', 'E', 'Q', 0, 0};
+static constexpr char MAGIC[8] = {'K', 'F', 'R', 'E', 'Q', 0, 0, 0};
 static constexpr std::uint32_t VERSION = 1;
 // More than any real list unpacks to, so a damaged size can't make it
 // allocate gigabytes

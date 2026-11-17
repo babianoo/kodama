@@ -1,6 +1,6 @@
 # Plan: the rolling audio buffer
 
-The main feature of Hearstash, and the selling point for the startup
+The main feature of Kodama, and the selling point for the startup
 class. It grew out of the "rolling audio buffer" experiment in Japanese
 Helper, and takes ideas from Yomitan and from mining cards with mpv +
 mpvacious.
@@ -110,14 +110,14 @@ New `src/ui/global_hotkey.{h,cpp}`.
 - The key combination is a setting. Registering fails if another app has
   it, so that has to be reported, not ignored.
 - Linux (X11: `XGrabKey`; Wayland: the GlobalShortcuts portal) can wait.
-  Hearstash is Windows-first.
+  Kodama is Windows-first.
 
 Done when: pressing it from any app (mpv, a fullscreen browser) opens the
 capture window.
 
 **Linux: done, differently.** Wayland lets no app grab a key, so the
-desktop owns the shortcut: the user binds a key to `hearstash --capture`
-(e.g. `bind = SUPER, A, exec, /path/to/hearstash --capture` in
+desktop owns the shortcut: the user binds a key to `kodama --capture`
+(e.g. `bind = SUPER, A, exec, /path/to/kodama --capture` in
 hyprland.conf), which passes the press to the running app through a
 socket in `$XDG_RUNTIME_DIR`. Settings > Shortcuts shows the command with
 the right path. This works on X11 desktops too, so no `XGrabKey` was
@@ -132,7 +132,7 @@ dragged), where thread messages are lost. The key is a setting
 Windows 11 uses it, and it has no AltGr in it, which types letters
 like ć in some layouts. Settings > Shortcuts takes a new one from the keys
 pressed in its box, and pauses the old one meanwhile. A key that's
-taken is reported there. `hearstash --capture` works on Windows too,
+taken is reported there. `kodama --capture` works on Windows too,
 by posting to that window, and a second copy of the app is told the
 first one has the shortcut.
 
@@ -189,7 +189,7 @@ timestamps are still to do.
   the transcript.
 - Jisho handles some inflected forms (食べた → 食べる), not all.
 - **Since replaced by a dictionary on the computer**: Jitendex, shipped
-  with the app as `jitendex.hsdict` (src/core/dictionary.h, made from its
+  with the app as `jitendex.kdict` (src/core/dictionary.h, made from its
   zip by src/core/dictionary_import.h at build time and by the app when
   it updates). A selection is looked up as written and as every
   dictionary form it could be an inflection of (src/core/deinflect.h),
@@ -282,10 +282,10 @@ picture.
 **Done** (no platform code), apart from adding a card to a running Anki,
 which still has to be tried by hand: Anki wasn't open while it was
 built, so only "Anki isn't open" was tested. Cards are tagged
-`hearstash`, and pictures are at most 480 px tall.
+`kodama`, and pictures are at most 480 px tall.
 
-By default cards use Hearstash's own note type
-(src/core/hearstash_note_type.h), so they look right without the user
+By default cards use Kodama's own note type
+(src/core/kodama_note_type.h), so they look right without the user
 making one: the sentence on the front with the word highlighted; the
 word, reading, meanings, audio and picture on the back, in large
 Japanese type. It's added to Anki through AnkiConnect's `createModel`
@@ -315,7 +315,7 @@ headers first, and the app then uses it. The two declare
 `jpeg_mem_dest`'s size differently, which src/core/image.cpp allows for.
 
 On Windows the app is built as a GUI program, so neither starting it nor
-`hearstash --capture` opens a console window. The README also describes
+`kodama --capture` opens a console window. The README also describes
 a portable static build in `build-dist/`, aimed at AVX2 CPUs instead of
 the build machine's own (`GGML_NATIVE=OFF`), so the `.exe` can be sent
 to other people. It has the same icon as japanese-helper.
@@ -390,7 +390,7 @@ below).
 `TextReader` (src/core/text_reader.h) runs the two models; everything
 around them that needs no model is in src/core/ocr_text.h, tested.
 
-A screen capture has its own shortcut (`hearstash --read-screen` on
+A screen capture has its own shortcut (`kodama --read-screen` on
 Linux, `Win+Alt+X` on Windows, set in Settings > Shortcuts) and its own
 window, `ScreenWindow`: the capture window's twin, with the screenshot
 where the waveform is, and the same text, lookup, Translate and Add to
@@ -529,7 +529,7 @@ then.
 What the user does:
 
 1. While watching, they press the **stash shortcut** (Linux:
-   `hearstash --stash`; Windows: Win+Alt+Z by default). No window opens
+   `kodama --stash`; Windows: Win+Alt+Z by default). No window opens
    and nothing takes the focus. A short chime says it was kept; a lower
    one that it wasn't, e.g. with the buffer off.
 2. After the episode, the main window's stash button shows how many are

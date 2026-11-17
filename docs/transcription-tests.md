@@ -294,7 +294,7 @@ The same 50 clips on a **GTX 1050 Ti** (2016, 4 GB), through whisper.cpp's Vulka
 - **About 50 clips per show is a small sample:** a difference of 2 or 3 lines between two models isn't meaningful.
 
 ## Files
-The scripts and clips are in the Hearstash repo under `testing/audio-tests/`. That folder isn't committed: the clips come from copyrighted episodes.
+The scripts and clips are in the Kodama repo under `testing/audio-tests/`. That folder isn't committed: the clips come from copyrighted episodes.
 
 | File | What it does |
 |---|---|

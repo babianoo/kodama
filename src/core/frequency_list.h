@@ -26,7 +26,7 @@
 //
 // The zip's term_meta_bank_*.json are about 30 MB of JSON. The app keeps
 // what it needs from them in a file of its own:
-//   "HSFREQ\0\0", u32 version, u32 size of the metadata, the metadata as
+//   "KFREQ\0\0\0", u32 version, u32 size of the metadata, the metadata as
 //   JSON (a FrequencyInfo's fields), u64 size of the rows unpacked, then
 //   the rows deflated with zlib: one per line, "term\treading\tshown\n",
 //   sorted by term and otherwise in the zip's order. reading is empty for
@@ -92,9 +92,9 @@ inline constexpr const char* FREQUENCY_TITLE = "JPDBv2㋕";
 inline constexpr const char* FREQUENCY_URL =
     "https://github.com/Kuuuube/yomitan-dictionaries/raw/main/dictionaries/JPDB_v2.2_Frequency_Kana_2024-10-13.zip";
 inline constexpr const char* FREQUENCY_SHA1 = "79f8b85354ad49c20cc17752b8f6feaaa245aa71";
-inline constexpr const char* FREQUENCY_FILE_NAME = "frequencies.hsfreq";
+inline constexpr const char* FREQUENCY_FILE_NAME = "frequencies.kfreq";
 
-// data_dir()/dictionary/frequencies.hsfreq. Throws std::runtime_error if
+// data_dir()/dictionary/frequencies.kfreq. Throws std::runtime_error if
 // data_dir() can't be found. Creates nothing.
 std::filesystem::path frequency_path();
 

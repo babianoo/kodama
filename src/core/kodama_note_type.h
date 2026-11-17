@@ -13,11 +13,11 @@
 // Yomitan. It's the default in Settings > Anki, and is added to Anki with
 // the first card that uses it.
 
-inline constexpr const char* HEARSTASH_NOTE_TYPE = "Hearstash";
+inline constexpr const char* KODAMA_NOTE_TYPE = "Kodama";
 
 // Its fields, in order: CARD_PART_NAMES, one for each part of a card. The
 // word comes first, so it's what Anki sorts by and checks for duplicates.
-inline std::vector<std::string> hearstash_fields(){
+inline std::vector<std::string> kodama_fields(){
     return {std::begin(CARD_PART_NAMES), std::end(CARD_PART_NAMES)};
 }
 
@@ -25,4 +25,4 @@ inline std::vector<std::string> hearstash_fields(){
 // version of the app added gets this version's styling and card template,
 // but only where it's still exactly as the app made it: what the user
 // changed is left as it is. Throws like anki_connect.h.
-void ensure_hearstash_note_type();
+void ensure_kodama_note_type();

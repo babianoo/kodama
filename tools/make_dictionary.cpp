@@ -1,6 +1,6 @@
 // Makes the dictionary file the app ships with from a dictionary's zip:
 //
-//   make_dictionary jitendex-yomitan.zip jitendex.hsdict
+//   make_dictionary jitendex-yomitan.zip jitendex.kdict
 //
 // Run by the build (see CMakeLists.txt), and by hand to try a zip out. The
 // app does the same itself when it updates its dictionary.

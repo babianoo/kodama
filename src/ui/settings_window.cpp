@@ -20,7 +20,7 @@
 
 #include "core/anki_connect.h"
 #include "core/dictionary_files.h"
-#include "core/hearstash_note_type.h"
+#include "core/kodama_note_type.h"
 #include "core/recorder.h"
 #include "core/settings.h"
 #include "core/transcriber.h"
@@ -973,13 +973,13 @@ static std::vector<std::string> list_names(Fl_Choice& choice, std::vector<std::s
     return names;
 }
 
-// The fields of note_type, as Anki has them. The Hearstash note type has
+// The fields of note_type, as Anki has them. The Kodama note type has
 // its own until Anki has it, which is from its first card on.
 static std::vector<std::string> note_type_fields(const std::string& note_type){
     try {
         return anki_model_field_names(note_type);
     } catch (const std::exception&){
-        if (note_type == HEARSTASH_NOTE_TYPE) return hearstash_fields();
+        if (note_type == KODAMA_NOTE_TYPE) return kodama_fields();
         throw;
     }
 }
@@ -1003,13 +1003,13 @@ void SettingsWindow::refresh_anki(){
 
     // Always there to choose, even before Anki has it
     const bool anki_has_saved = std::ranges::find(note_types, saved.note_type) != note_types.end();
-    if (std::ranges::find(note_types, HEARSTASH_NOTE_TYPE) == note_types.end())
-        note_types.insert(note_types.begin(), HEARSTASH_NOTE_TYPE);
+    if (std::ranges::find(note_types, KODAMA_NOTE_TYPE) == note_types.end())
+        note_types.insert(note_types.begin(), KODAMA_NOTE_TYPE);
 
     deck_names = list_names(*deck_choice, decks, saved.deck, nullptr);
     note_type_names = list_names(*note_type_choice, note_types, saved.note_type, nullptr);
     field_names.clear();
-    if (anki_has_saved || saved.note_type == HEARSTASH_NOTE_TYPE){
+    if (anki_has_saved || saved.note_type == KODAMA_NOTE_TYPE){
         try {
             field_names = note_type_fields(saved.note_type);
         } catch (const std::exception&){
@@ -1201,12 +1201,12 @@ static std::vector<TextSpan> credit_spans(const DictionaryInfo* info, const std:
     const auto link = [&](const char* text){ spans.push_back({std::string(text) + "\n\n", CREDIT_SMALL}); };
 
     heading("Jitendex");
-    line("The definitions, example sentences and readings Hearstash shows and puts on cards come from Jitendex, "
+    line("The definitions, example sentences and readings Kodama shows and puts on cards come from Jitendex, "
          "by Stephen Kraus, used under the Creative Commons Attribution-ShareAlike 4.0 licence.");
     link("jitendex.org\ncreativecommons.org/licenses/by-sa/4.0");
 
-    heading("Hearstash's copy of it");
-    line("Hearstash keeps Jitendex as one file, rearranged so a word can be found quickly. Its text isn't changed. "
+    heading("Kodama's copy of it");
+    line("Kodama keeps Jitendex as one file, rearranged so a word can be found quickly. Its text isn't changed. "
          "The file is under the same licence, so you may copy and share it on the same terms.");
     link(file.empty() ? "Not installed" : file.c_str());
 
@@ -1232,7 +1232,7 @@ static std::vector<TextSpan> credit_spans(const DictionaryInfo* info, const std:
 
     heading(FREQUENCY_TITLE);
     line(std::format("How common words are comes from {}, Kuuube's Yomitan dictionary of jpdb.io's frequency "
-                     "list, by jpdb, Kuuube and Gecko. Its licence isn't stated, so Hearstash doesn't come with it: "
+                     "list, by jpdb, Kuuube and Gecko. Its licence isn't stated, so Kodama doesn't come with it: "
                      "it's downloaded from where Kuuube publishes it when you ask for it.", FREQUENCY_TITLE));
     link("jpdb.io\ngithub.com/Kuuuube/yomitan-dictionaries");
     if (frequency && !frequency->attribution.empty()){

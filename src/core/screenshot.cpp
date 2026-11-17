@@ -563,7 +563,7 @@ static Image portal_screenshot(){
     std::string sender = unique_name + 1;    // Without the ":"
     std::ranges::replace(sender, '.', '_');
     static unsigned count = 0;
-    const std::string token = std::format("hearstash{}_{}", getpid(), ++count);
+    const std::string token = std::format("kodama{}_{}", getpid(), ++count);
     const std::string request = std::format("/org/freedesktop/portal/desktop/request/{}/{}", sender, token);
 
     Response response;

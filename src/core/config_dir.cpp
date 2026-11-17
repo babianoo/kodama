@@ -13,7 +13,7 @@
 #endif
 
 // The same on every platform
-static constexpr const char* APP_DIR = "Hearstash";
+static constexpr const char* APP_DIR = "Kodama";
 // What the app was called before, so its folders can be moved over
 static constexpr const char* OLD_APP_DIR = "Prototype";
 

@@ -50,7 +50,7 @@ int main(int argc, char** argv){
     init_theme();
 
 #ifdef _WIN32
-    // The icon built into the .exe (resources/hearstash.rc), for every
+    // The icon built into the .exe (resources/kodama.rc), for every
     // window's title bar and taskbar button. Loaded at the sizes Windows
     // draws them at, so neither is scaled from the other.
     HINSTANCE exe = GetModuleHandleW(nullptr);

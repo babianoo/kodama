@@ -3,7 +3,7 @@
 #include <cstdio>
 
 #include "core/anki_fields.h"
-#include "core/hearstash_note_type.h"
+#include "core/kodama_note_type.h"
 
 static int failures = 0;
 
@@ -48,18 +48,18 @@ int main(){
 
     CHECK(guess({}, CardPart::Word).empty());
 
-    // The default settings fill the Hearstash note type, each part in its
+    // The default settings fill the Kodama note type, each part in its
     // own field, as choosing it in Settings would
     const AnkiSettings defaults;
-    CHECK(defaults.note_type == HEARSTASH_NOTE_TYPE);
-    const std::vector<std::string> hearstash = hearstash_fields();
+    CHECK(defaults.note_type == KODAMA_NOTE_TYPE);
+    const std::vector<std::string> kodama = kodama_fields();
     for (size_t p = 0; p < CARD_PART_COUNT; ++p){
         const auto part = static_cast<CardPart>(p);
         CHECK(field_for(defaults, part) == CARD_PART_NAMES[p]);
-        CHECK(guess(hearstash, part) == CARD_PART_NAMES[p]);
+        CHECK(guess(kodama, part) == CARD_PART_NAMES[p]);
     }
     // The word first, so it's what Anki checks for duplicates
-    CHECK(hearstash.front() == "Word");
+    CHECK(kodama.front() == "Word");
 
     if (failures == 0) std::puts("All anki_fields tests passed");
     return failures;

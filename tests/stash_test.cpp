@@ -33,7 +33,7 @@ static Image gradient(int width, int height){
 }
 
 int main(){
-    const fs::path dir = fs::temp_directory_path() / "hearstash-stash-test" / "stash";
+    const fs::path dir = fs::temp_directory_path() / "kodama-stash-test" / "stash";
     fs::remove_all(dir.parent_path());
 
     // Nothing there yet

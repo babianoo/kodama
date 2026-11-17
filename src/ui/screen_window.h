@@ -22,7 +22,7 @@ class Fl_Box;
 class Fl_Button;
 class Fl_Widget;
 
-// The window the screen shortcut opens (hearstash --read-screen), for
+// The window the screen shortcut opens (kodama --read-screen), for
 // games and visual novels: the capture window's twin, with the screenshot
 // taken then where the waveform is. The text on it is read (OCR) as the
 // window opens, and shows where the transcript would, to look up,

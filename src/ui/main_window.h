@@ -74,7 +74,7 @@ private:
 
     // Owned by MainWindow as a member, so no new/delete anywhere.
     // When MainWindow dies, win dies and deletes all of its children.
-    Fl_Double_Window win{900, 600, "Hearstash"};
+    Fl_Double_Window win{900, 600, "Kodama"};
 
     // Created with new in the constructor and added to win, which
     // deletes them when it dies. MainWindow only keeps a handle to them.

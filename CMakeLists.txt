@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21...4.3.1)
 # C as well, for whisper.cpp's ggml
-project(hearstash C CXX)
+project(kodama C CXX)
 
 # Require C++23
 set(CMAKE_CXX_STANDARD 23)
@@ -89,27 +89,27 @@ set(GGML_OPENMP OFF CACHE BOOL "Use OpenMP in ggml")
 # Vulkan, to run whisper on the GPU: NVIDIA, AMD and Intel alike. Building
 # it takes the Vulkan headers and loader, glslc (to compile ggml's
 # shaders) and SPIRV-Headers; Arch: vulkan-headers, vulkan-icd-loader,
-# shaderc, spirv-headers. HEARSTASH_GPU is AUTO (with Vulkan when those
+# shaderc, spirv-headers. KODAMA_GPU is AUTO (with Vulkan when those
 # are found), ON (fail without them) or OFF (CPU only). It sets ggml's own
 # GGML_VULKAN, which is overwritten.
 # With it, the app needs the Vulkan loader (libvulkan.so.1, vulkan-1.dll)
 # to start, which GPU drivers come with. Without a GPU that can take the
 # model, it transcribes on the CPU.
-set(HEARSTASH_GPU AUTO CACHE STRING "Run whisper on the GPU through Vulkan: AUTO, ON or OFF")
-set_property(CACHE HEARSTASH_GPU PROPERTY STRINGS AUTO ON OFF)
+set(KODAMA_GPU AUTO CACHE STRING "Run whisper on the GPU through Vulkan: AUTO, ON or OFF")
+set_property(CACHE KODAMA_GPU PROPERTY STRINGS AUTO ON OFF)
 set(VULKAN_BUILDABLE OFF)
-if(NOT HEARSTASH_GPU STREQUAL "OFF")
+if(NOT KODAMA_GPU STREQUAL "OFF")
     find_package(Vulkan QUIET COMPONENTS glslc)
     find_package(SPIRV-Headers CONFIG QUIET)
     if(Vulkan_FOUND AND Vulkan_glslc_FOUND AND SPIRV-Headers_FOUND)
         set(VULKAN_BUILDABLE ON)
     endif()
 endif()
-if(HEARSTASH_GPU STREQUAL "AUTO")
+if(KODAMA_GPU STREQUAL "AUTO")
     set(USE_VULKAN ${VULKAN_BUILDABLE})
-elseif(HEARSTASH_GPU)
+elseif(KODAMA_GPU)
     if(NOT VULKAN_BUILDABLE)
-        message(FATAL_ERROR "HEARSTASH_GPU is ON, but the Vulkan headers and loader, glslc or SPIRV-Headers weren't found")
+        message(FATAL_ERROR "KODAMA_GPU is ON, but the Vulkan headers and loader, glslc or SPIRV-Headers weren't found")
     endif()
     set(USE_VULKAN ON)
 else()
@@ -118,7 +118,7 @@ endif()
 if(NOT USE_VULKAN)
     message(STATUS "Building without Vulkan: whisper will only run on the CPU")
 endif()
-set(GGML_VULKAN ${USE_VULKAN} CACHE BOOL "Set from HEARSTASH_GPU" FORCE)
+set(GGML_VULKAN ${USE_VULKAN} CACHE BOOL "Set from KODAMA_GPU" FORCE)
 add_subdirectory(external/whisper.cpp EXCLUDE_FROM_ALL)
 
 # miniaudio, for recording from the microphone. It's one header, compiled
@@ -145,7 +145,7 @@ if(UNIX)
 endif()
 
 # Add new source files here, by path from the project root.
-add_executable(hearstash
+add_executable(kodama
     src/main.cpp
     src/core/anki_connect.cpp
     src/core/anki_fields.cpp
@@ -154,7 +154,7 @@ add_executable(hearstash
     src/core/bad_file.cpp
     src/core/card_format.cpp
     src/core/clip_player.cpp
-    src/core/hearstash_note_type.cpp
+    src/core/kodama_note_type.cpp
     src/core/history.cpp
     src/core/http.cpp
     src/core/image.cpp
@@ -230,22 +230,22 @@ add_executable(hearstash
 # A GUI program on Windows, so starting it (or the capture shortcut running
 # it with --capture) doesn't open a console window. main() stays the entry
 # point with MinGW.
-set_target_properties(hearstash PROPERTIES WIN32_EXECUTABLE ON)
+set_target_properties(kodama PROPERTIES WIN32_EXECUTABLE ON)
 # The app icon, built into the .exe
 if(WIN32)
-    target_sources(hearstash PRIVATE resources/hearstash.rc)
+    target_sources(kodama PRIVATE resources/kodama.rc)
 endif()
 # Only on our own code: whisper.cpp sets its own warnings, and miniaudio's
 # aren't ours to fix
-target_compile_options(hearstash PRIVATE -Wall -Wextra)
+target_compile_options(kodama PRIVATE -Wall -Wextra)
 
 # Includes are written from src/, e.g. #include "core/anki/anki_connect.h"
-target_include_directories(hearstash PRIVATE
+target_include_directories(kodama PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${FLTK_INCLUDE_DIR}
     ${CAIRO_INCLUDE_DIRS}
 )
-target_link_libraries(hearstash PRIVATE
+target_link_libraries(kodama PRIVATE
     ${FLTK_LIBRARIES}
     CURL::libcurl
     JPEG::JPEG
@@ -256,19 +256,19 @@ target_link_libraries(hearstash PRIVATE
     miniaudio
 )
 if(WAYLAND_CLIENT_FOUND)
-    target_link_libraries(hearstash PRIVATE PkgConfig::WAYLAND_CLIENT)
-    target_compile_definitions(hearstash PRIVATE HAVE_WAYLAND_CLIENT)
+    target_link_libraries(kodama PRIVATE PkgConfig::WAYLAND_CLIENT)
+    target_compile_definitions(kodama PRIVATE HAVE_WAYLAND_CLIENT)
 endif()
 if(NOT WIN32)
-    target_link_libraries(hearstash PRIVATE PNG::PNG)
+    target_link_libraries(kodama PRIVATE PNG::PNG)
 endif()
 if(LIBSYSTEMD_FOUND)
-    target_link_libraries(hearstash PRIVATE PkgConfig::LIBSYSTEMD)
-    target_compile_definitions(hearstash PRIVATE HAVE_SD_BUS)
+    target_link_libraries(kodama PRIVATE PkgConfig::LIBSYSTEMD)
+    target_compile_definitions(kodama PRIVATE HAVE_SD_BUS)
 endif()
 if(onnxruntime_FOUND)
-    target_link_libraries(hearstash PRIVATE onnxruntime::onnxruntime)
-    target_compile_definitions(hearstash PRIVATE HAVE_ONNXRUNTIME)
+    target_link_libraries(kodama PRIVATE onnxruntime::onnxruntime)
+    target_compile_definitions(kodama PRIVATE HAVE_ONNXRUNTIME)
 
     # Windows ships an old onnxruntime.dll of its own in System32 (for
     # Windows ML), which is searched before PATH, so the app would load it
@@ -276,9 +276,9 @@ if(onnxruntime_FOUND)
     # so put the one it was built against there
     get_target_property(ONNXRUNTIME_TYPE onnxruntime::onnxruntime TYPE)
     if(WIN32 AND ONNXRUNTIME_TYPE STREQUAL "SHARED_LIBRARY")
-        add_custom_command(TARGET hearstash POST_BUILD
+        add_custom_command(TARGET kodama POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    $<TARGET_FILE:onnxruntime::onnxruntime> $<TARGET_FILE_DIR:hearstash>)
+                    $<TARGET_FILE:onnxruntime::onnxruntime> $<TARGET_FILE_DIR:kodama>)
     endif()
 endif()
 # The same for MinGW's own DLLs: other programs on PATH (QEMU, Git, ...)
@@ -287,8 +287,8 @@ endif()
 # Runs after onnxruntime.dll is copied, so that's found next to the .exe
 if(MINGW)
     get_filename_component(MINGW_BIN ${CMAKE_CXX_COMPILER} DIRECTORY)
-    add_custom_command(TARGET hearstash POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:hearstash> -DMINGW_BIN=${MINGW_BIN}
+    add_custom_command(TARGET kodama POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:kodama> -DMINGW_BIN=${MINGW_BIN}
                 -DOBJDUMP=${CMAKE_OBJDUMP} -P ${CMAKE_SOURCE_DIR}/cmake/copy_mingw_dlls.cmake
         VERBATIM)
 endif()
@@ -312,10 +312,10 @@ endif()
 # licence of the data Jitendex is built on asks for that. Without a
 # connection the build goes on without a dictionary, and the app then looks
 # words up on jisho.org until it has downloaded one itself.
-#   -DHEARSTASH_DICTIONARY=OFF        builds no dictionary file
-#   -DHEARSTASH_DICTIONARY_ZIP=<zip>  converts that zip instead of fetching one
-option(HEARSTASH_DICTIONARY "Build the dictionary file the app ships with" ON)
-set(HEARSTASH_DICTIONARY_ZIP "" CACHE FILEPATH "A Yomitan-format dictionary zip to convert instead of fetching Jitendex")
+#   -DKODAMA_DICTIONARY=OFF        builds no dictionary file
+#   -DKODAMA_DICTIONARY_ZIP=<zip>  converts that zip instead of fetching one
+option(KODAMA_DICTIONARY "Build the dictionary file the app ships with" ON)
+set(KODAMA_DICTIONARY_ZIP "" CACHE FILEPATH "A Yomitan-format dictionary zip to convert instead of fetching Jitendex")
 set(DICTIONARY_URL "https://github.com/stephenmk/stephenmk.github.io/releases/latest/download/jitendex-yomitan.zip")
 
 # What the dictionary takes without the app around it: the converter here,
@@ -334,8 +334,8 @@ target_compile_options(make_dictionary PRIVATE -Wall -Wextra)
 target_include_directories(make_dictionary PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(make_dictionary PRIVATE ZLIB::ZLIB CURL::libcurl nlohmann_json::nlohmann_json)
 
-if(HEARSTASH_DICTIONARY)
-    set(DICTIONARY_ZIP "${HEARSTASH_DICTIONARY_ZIP}")
+if(KODAMA_DICTIONARY)
+    set(DICTIONARY_ZIP "${KODAMA_DICTIONARY_ZIP}")
     if(NOT DICTIONARY_ZIP)
         set(DICTIONARY_ZIP "${CMAKE_BINARY_DIR}/jitendex-yomitan.zip")
         set(DICTIONARY_FETCH TRUE)
@@ -366,7 +366,7 @@ if(HEARSTASH_DICTIONARY)
     if(EXISTS "${DICTIONARY_ZIP}")
         # Next to the program. Also made again when the converter changes,
         # as the file's layout may have.
-        set(DICTIONARY_FILE "${CMAKE_BINARY_DIR}/jitendex.hsdict")
+        set(DICTIONARY_FILE "${CMAKE_BINARY_DIR}/jitendex.kdict")
         add_custom_command(
             OUTPUT "${DICTIONARY_FILE}"
             COMMAND make_dictionary "${DICTIONARY_ZIP}" "${DICTIONARY_FILE}"

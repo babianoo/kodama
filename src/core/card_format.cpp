@@ -10,8 +10,8 @@
 static constexpr const char* HIGHLIGHT_OPEN = "<span style=\"font-size:1.3em; color: #00828a;\">";
 static constexpr const char* HIGHLIGHT_CLOSE = "</span>";
 // Yomitan's {glossary-brief} wraps the glossary in this. Inside it, the
-// senses are marked up the way Jitendex's are, which the Hearstash note
-// type styles (hearstash_note_type.cpp): groups of senses under their
+// senses are marked up the way Jitendex's are, which the Kodama note
+// type styles (kodama_note_type.cpp): groups of senses under their
 // parts of speech, and in each sense a list of its glosses.
 static constexpr const char* GLOSSARY_OPEN = "<div style=\"text-align: left;\" class=\"yomitan-glossary\"><ol>"
                                              "<li data-dictionary=\"Jisho.org\"><span>"

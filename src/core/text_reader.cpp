@@ -25,7 +25,7 @@ static constexpr std::array DETECTION_STD{0.229f, 0.224f, 0.225f};
 
 struct TextReader::Models {
     // Has to outlive the sessions
-    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "hearstash"};
+    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "kodama"};
     Ort::Session detection{nullptr};
     Ort::Session recognition{nullptr};
     std::vector<std::string> characters;
@@ -155,7 +155,7 @@ std::string TextReader::read(const Image& image, std::stop_token stop){
 struct TextReader::Models {};
 
 TextReader::TextReader(const std::filesystem::path&, const std::filesystem::path&, const std::filesystem::path&){
-    throw std::runtime_error("This copy of Hearstash was built without onnxruntime, so it can't read text on the screen.");
+    throw std::runtime_error("This copy of Kodama was built without onnxruntime, so it can't read text on the screen.");
 }
 
 TextReader::~TextReader() = default;
