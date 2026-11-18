@@ -11,6 +11,7 @@
 class AudioBuffer;
 class CaptureWindow;
 class ClipPlayer;
+class ControllerListener;
 class FrameRecorder;
 class ScreenWindow;
 class SettingsStore;
@@ -55,6 +56,11 @@ public:
     // while Settings waits for the keys of a new one: pressing the old one
     // there would capture instead of reaching it
     void pause_hotkey(bool paused);
+    // What reads the controller shortcuts, e.g. for Settings to show
+    // whether one is connected. Null if controllers can't be read, and
+    // controller_error() says why.
+    ControllerListener* controller(){ return controller_listener.get(); }
+    const std::string& controller_error() const { return controller_error_; }
 
     // Opens the last seconds in the capture window, with a screenshot
     // taken now and those kept every few seconds before it, as the
@@ -95,6 +101,9 @@ private:
     // worked or not. Empty while there's none, e.g. paused.
     std::array<std::string, HOTKEY_ACTION_COUNT> applied_shortcuts;
     bool hotkey_paused = false;
+    // The same from a controller. Null if it couldn't be set up.
+    std::unique_ptr<ControllerListener> controller_listener;
+    std::string controller_error_;
     // Created on the first capture. Not plain members: constructing a
     // window makes it the current group, and the Capturer is created
     // before the main window.
@@ -107,6 +116,9 @@ private:
     std::unique_ptr<StashTranscriber> stash_transcriber;
 
     static size_t index(HotkeyAction action){ return static_cast<size_t>(action); }
+    // Does what a shortcut for action does, from the keyboard or a
+    // controller
+    void press(HotkeyAction action);
     // The shortcut the settings have for action, on Windows
     const std::string& wanted_shortcut(HotkeyAction action) const;
     // A rising chime if it worked, a low one if not, if the settings say to
@@ -116,7 +128,8 @@ private:
 
     // Starts, stops or resizes the buffer to match the settings
     void apply_settings();
-    // Gives hotkey the shortcuts the settings have, if they're others
+    // Gives hotkey the shortcuts the settings have, if they're others, and
+    // the controller listener its combinations
     void apply_shortcuts();
     // Every few seconds: switches to the default output if it changed
     static void on_follow_tick(void* data);

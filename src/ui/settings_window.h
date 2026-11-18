@@ -15,6 +15,7 @@
 // headers are included in settings_window.cpp instead.
 class Capturer;
 class ClipboardInput;
+class ControllerInput;
 class DictionaryUpdater;
 class FrequencyDownloader;
 class HistoryStore;
@@ -42,9 +43,10 @@ struct WhisperModel;
 // buffer of what the computer plays: whether it records, how long, whether
 // it's recording now; then what stashing a line does. The Shortcuts page
 // has the capture, screen capture and stash shortcuts (on Linux, the
-// commands to bind to keys). The Anki page has the deck and note type to
-// add cards to, which field gets each part of a card, both listed from
-// Anki, and the picture's quality. The Sources page, set apart at the
+// commands to bind to keys); on Windows, then the same for a game
+// controller, with whether one is connected. The Anki page has the deck
+// and note type to add cards to, which field gets each part of a card,
+// both listed from Anki, and the picture's quality. The Sources page, set apart at the
 // bottom of the sidebar, says which dictionary words are looked up in, how
 // old it is, with a button to get the latest; then the frequency list
 // shown beside each word, with a button to download or delete it; and
@@ -144,8 +146,14 @@ private:
     // Each shortcut, by HotkeyAction, on the Shortcuts page. The boxes are
     // on Windows only.
     std::array<ShortcutInput*, HOTKEY_ACTION_COUNT> shortcut_inputs{};
-    // Why each shortcut can't be received, if it can't
-    std::array<Fl_Box*, HOTKEY_ACTION_COUNT> hotkey_statuses{};
+    // Under them, how to set them, or in red why one can't be received,
+    // if one can't. hotkey_help is the first.
+    Fl_Box* hotkey_note = nullptr;
+    const char* hotkey_help = "";
+    // Under them, the controller's, by HotkeyAction. Windows only.
+    std::array<ControllerInput*, HOTKEY_ACTION_COUNT> controller_inputs{};
+    // Whether a controller is connected, or why they can't be read
+    Fl_Box* controller_status = nullptr;
     // On the Recording page too
     Fl_Check_Button* stash_chime_check = nullptr;
     Fl_Check_Button* stash_transcribe_check = nullptr;
@@ -205,6 +213,8 @@ private:
     static void on_screenshot_seconds(Fl_Widget* w, void* data);
     // Any of shortcut_inputs
     static void on_shortcut(Fl_Widget* w, void* data);
+    // Any of controller_inputs
+    static void on_controller(Fl_Widget* w, void* data);
     static void on_stash_chime(Fl_Widget* w, void* data);
     static void on_stash_transcribe(Fl_Widget* w, void* data);
     static void on_deck_chosen(Fl_Widget* w, void* data);
@@ -220,9 +230,15 @@ private:
     void add_general_settings(int x, int w);
     void add_speech_settings(int x, int w);
     void add_recording_settings(int x, int w);
-    // A shortcut's box (Windows) or command (Linux) per HotkeyAction, each
-    // with a line for why it can't be received
+    // A shortcut's box (Windows) or command (Linux) per HotkeyAction, then
+    // hotkey_note. On Windows, then a box per HotkeyAction for the
+    // controller's.
     void add_shortcut_settings(int x, int w);
+    // Stops every shortcut box waiting for keys or buttons
+    void stop_shortcuts_waiting();
+    // Shows the controller's shortcuts as the settings have them, and
+    // whether one is connected, which changes outside the window too
+    void refresh_controller();
     void add_anki_settings(int x, int w);
     void add_sources(int x, int w);
     void select(size_t i);

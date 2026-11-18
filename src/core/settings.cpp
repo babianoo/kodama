@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <initializer_list>
 #include <iterator>
 #include <optional>
+#include <vector>
 
 #include "core/atomic_write.h"
 #include "core/bad_file.h"
+#include "core/controller_combo.h"
 #include "core/shortcut.h"
 #include "core/whisper_models.h"
 
@@ -44,14 +47,15 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSettings, auto_translate, dee
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BufferSettings, enabled, seconds, selection_seconds, shortcut,
                                                 stash_shortcut, stash_chime, stash_transcribe, screenshots,
                                                 screenshot_seconds)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ControllerSettings, capture, read_screen, stash)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(DictionarySettings, update_declined)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GeneralSettings, scroll_speed)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(HistorySettings, capacity)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SpeechSettings, whisper_model, input_device, use_gpu)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ScreenArea, x, y, w, h)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ScreenTextSettings, shortcut, areas)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, anki, api, buffer, dictionary, general, history, screen_text,
-                                                speech)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, anki, api, buffer, controller, dictionary, general, history,
+                                                screen_text, speech)
 
 Settings load_settings(const fs::path& file){
     std::ifstream in(file);
@@ -103,6 +107,16 @@ void sanitize(Settings& settings){
     std::string& screen_shortcut = settings.screen_text.shortcut;
     const std::optional<Shortcut> parsed_screen = parse_shortcut(screen_shortcut);
     screen_shortcut = parsed_screen ? format_shortcut(*parsed_screen) : DEFAULT_SCREEN_SHORTCUT;
+    // The same for the controller's, which can be none. One that can't be
+    // read, or that an earlier one has too, is none.
+    std::vector<ControllerButtons> combos;
+    for (std::string* combo : {&settings.controller.capture, &settings.controller.read_screen,
+                               &settings.controller.stash}){
+        const ControllerButtons buttons = parse_controller_combo(*combo).value_or(0);
+        const bool taken = std::ranges::find(combos, buttons) != combos.end();
+        *combo = buttons && !taken ? format_controller_combo(buttons) : "";
+        combos.push_back(buttons);
+    }
 
     AnkiSettings& anki = settings.anki;
     // E.g. saved by a version that had no note type of its own, before one

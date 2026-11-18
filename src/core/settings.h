@@ -14,7 +14,8 @@
 //
 //   {"anki": {"deck": "Mining"},
 //    "api": {"auto_translate": true, "deepl_key": "...", "last_api": "jisho"},
-//    "buffer": {"seconds": 30}, "general": {"scroll_speed": 50},
+//    "buffer": {"seconds": 30}, "controller": {"capture": "Back+A"},
+//    "general": {"scroll_speed": 50},
 //    "history": {"capacity": 100},
 //    "screen_text": {"areas": {"fate.exe": {"x": 0.1, ...}}},
 //    "speech": {"whisper_model": "small", "use_gpu": true}, "version": 1}
@@ -153,6 +154,16 @@ struct ScreenTextSettings {
     std::map<std::string, ScreenArea> areas;
 };
 
+// The controller shortcuts, on the Shortcuts page with the keyboard ones:
+// the buttons held together on a game controller for each, as
+// parse_controller_combo reads them. Empty for none, which they start as,
+// since no buttons are free in every game. Windows only for now.
+struct ControllerSettings {
+    std::string capture;
+    std::string read_screen;
+    std::string stash;
+};
+
 // The dictionary words are looked up in. Not a category of the window:
 // it has nothing to choose.
 struct DictionarySettings {
@@ -165,6 +176,7 @@ struct Settings {
     AnkiSettings anki;
     ApiSettings api;
     BufferSettings buffer;
+    ControllerSettings controller;
     DictionarySettings dictionary;
     GeneralSettings general;
     HistorySettings history;

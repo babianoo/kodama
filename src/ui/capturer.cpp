@@ -17,6 +17,7 @@
 
 #include "core/audio_buffer.h"
 #include "core/clip_player.h"
+#include "core/controller_combo.h"
 #include "core/frame_recorder.h"
 #include "core/local_time.h"
 #include "core/screen_frames.h"
@@ -24,6 +25,7 @@
 #include "core/settings.h"
 #include "core/stash.h"
 #include "ui/capture_window.h"
+#include "ui/controller_listener.h"
 #include "ui/screen_window.h"
 #include "ui/settings_store.h"
 #include "ui/stash_store.h"
@@ -71,19 +73,27 @@ Capturer::Capturer(SettingsStore& settings, SharedTranscriber& transcriber, Stas
     Fl::add_timeout(FOLLOW_TICK, on_follow_tick, this);
 
     try {
-        hotkey = std::make_unique<GlobalHotkey>([this](HotkeyAction action){
-            switch (action){
-            case HotkeyAction::Capture: capture(); break;
-            case HotkeyAction::ReadScreen: read_screen(); break;
-            case HotkeyAction::Stash: stash_now(); break;
-            }
-        });
+        hotkey = std::make_unique<GlobalHotkey>([this](HotkeyAction action){ press(action); });
     } catch (const std::exception& e){
         // Shown on the Buffer and Screen Text settings pages too
         std::cerr << std::format("No capture shortcuts: {}\n", e.what());
         hotkey_errors.fill(e.what());
     }
+    try {
+        controller_listener = std::make_unique<ControllerListener>([this](HotkeyAction action){ press(action); });
+    } catch (const std::exception& e){
+        // Shown on the Shortcuts page, under the controller's
+        controller_error_ = e.what();
+    }
     apply_shortcuts();
+}
+
+void Capturer::press(HotkeyAction action){
+    switch (action){
+    case HotkeyAction::Capture: capture(); break;
+    case HotkeyAction::ReadScreen: read_screen(); break;
+    case HotkeyAction::Stash: stash_now(); break;
+    }
 }
 
 Capturer::~Capturer(){
@@ -125,6 +135,18 @@ void Capturer::apply_settings(){
 }
 
 void Capturer::apply_shortcuts(){
+    if (controller_listener){
+        // Setting one that hasn't changed costs nothing. The settings have
+        // them written so they can be read.
+        const ControllerSettings& combos = settings.get().controller;
+        for (HotkeyAction action : HOTKEY_ACTIONS){
+            const std::string& combo = action == HotkeyAction::Capture  ? combos.capture
+                                     : action == HotkeyAction::ReadScreen ? combos.read_screen
+                                                                          : combos.stash;
+            controller_listener->set_combo(action, parse_controller_combo(combo).value_or(0));
+        }
+    }
+
     if (!hotkey || hotkey_paused) return;
     for (HotkeyAction action : HOTKEY_ACTIONS){
         // Every change to any setting comes here, and a shortcut that

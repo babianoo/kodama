@@ -174,6 +174,7 @@ add_executable(kodama
     src/core/text_reader.cpp
     src/core/verified_download.cpp
     src/core/config_dir.cpp
+    src/core/controller_combo.cpp
     src/core/recorder.cpp
     src/core/resample.cpp
     src/core/sample_ring.cpp
@@ -198,6 +199,8 @@ add_executable(kodama
     src/ui/category_button.cpp
     src/ui/clipboard.cpp
     src/ui/clipboard_input.cpp
+    src/ui/controller_input.cpp
+    src/ui/controller_listener.cpp
     src/ui/crop_view.cpp
     src/ui/dictionary_updater.cpp
     src/ui/filter_bar.cpp
@@ -436,6 +439,11 @@ add_executable(shortcut_test tests/shortcut_test.cpp src/core/shortcut.cpp)
 target_compile_options(shortcut_test PRIVATE -Wall -Wextra)
 target_include_directories(shortcut_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_test(NAME shortcut COMMAND shortcut_test)
+
+add_executable(controller_combo_test tests/controller_combo_test.cpp src/core/controller_combo.cpp)
+target_compile_options(controller_combo_test PRIVATE -Wall -Wextra)
+target_include_directories(controller_combo_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_test(NAME controller_combo COMMAND controller_combo_test)
 
 add_executable(stash_test tests/stash_test.cpp src/core/stash.cpp src/core/image.cpp src/core/media_encoding.cpp
                src/core/atomic_write.cpp src/core/local_time.cpp src/core/screen_frames.cpp)

@@ -19,6 +19,7 @@
 #include <FL/Fl_SVG_Image.H>
 
 #include "core/anki_connect.h"
+#include "core/controller_combo.h"
 #include "core/dictionary_files.h"
 #include "core/kodama_note_type.h"
 #include "core/recorder.h"
@@ -28,6 +29,8 @@
 #include "ui/capturer.h"
 #include "ui/category_button.h"
 #include "ui/clipboard_input.h"
+#include "ui/controller_input.h"
+#include "ui/controller_listener.h"
 #include "ui/dictionary_updater.h"
 #include "ui/frequency_downloader.h"
 #include "ui/global_hotkey.h"
@@ -41,7 +44,8 @@
 #include "ui/wrapped_text.h"
 
 // In sidebar order. General has the DeepL key, the history and scrolling;
-// Recording the rolling buffer and stashing; Shortcuts all three hotkeys.
+// Recording the rolling buffer and stashing; Shortcuts all three hotkeys,
+// from the keyboard and a controller.
 // Sources isn't settings but what the app is built on, so it sits apart,
 // at the bottom of the sidebar under a line.
 static constexpr const char* CATEGORY_NAMES[] = {"General", "Speech-to-Text", "Recording", "Shortcuts", "Anki",
@@ -192,6 +196,10 @@ SettingsWindow::SettingsWindow(SettingsStore& settings, HistoryStore& history, M
     refresh_history();
     // After the Capturer's own listener, which applies the change first
     settings_listener = settings.add_listener([this]{ refresh_buffer(); });
+    // While the window is closed too, so it's right when it opens
+    if (ControllerListener* controller = capturer.controller())
+        controller->on_connected = [this]{ refresh_controller(); };
+    refresh_controller();
     dictionary_listener = dictionary.add_listener([this]{ refresh_sources(); });
     frequencies = std::make_unique<FrequencyDownloader>([this]{ refresh_sources(); });
 }
@@ -207,6 +215,7 @@ SettingsWindow::~SettingsWindow(){
     downloader.remove_listener(downloader_listener);
     settings.remove_listener(settings_listener);
     dictionary.remove_listener(dictionary_listener);
+    if (ControllerListener* controller = capturer.controller()) controller->on_connected = nullptr;
 }
 
 // The DeepL key with an eye button on its right, and whether captures are
@@ -323,8 +332,7 @@ void SettingsWindow::on_close(Fl_Widget*, void* data){
     self->apply_capacity();
     self->apply_buffer_seconds();
     self->apply_quality();
-    for (ShortcutInput* input : self->shortcut_inputs)
-        if (input) input->stop_waiting();
+    self->stop_shortcuts_waiting();
     self->win.hide();
 }
 
@@ -442,8 +450,7 @@ void SettingsWindow::select(size_t i){
     apply_capacity();
     apply_buffer_seconds();
     apply_quality();
-    for (ShortcutInput* input : shortcut_inputs)
-        if (input) input->stop_waiting();
+    stop_shortcuts_waiting();
     // Already done when the category was clicked, but not when it's
     // selected from code
     categories[i]->setonly();
@@ -744,17 +751,46 @@ static auto& shortcut_setting(S& s, HotkeyAction action){
     return s.buffer.shortcut;
 }
 
-// A row per shortcut, each with a line under it for why it can't be
-// received, then a note on how to set them
+// The same for the controller's
+template <typename S>
+static auto& controller_setting(S& s, HotkeyAction action){
+    switch (action){
+    case HotkeyAction::Capture: return s.controller.capture;
+    case HotkeyAction::ReadScreen: return s.controller.read_screen;
+    case HotkeyAction::Stash: return s.controller.stash;
+    }
+    return s.controller.capture;
+}
+
+// Over each group of shortcuts: the keyboard's, then the controller's
+static constexpr int HEADING_H = 20;
+
+static Fl_Box* section_heading(int left, int y, const char* text){
+    Fl_Box* heading = new Fl_Box(left, y, LABEL_W, HEADING_H, text);
+    heading->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+    heading->labelfont(FL_HELVETICA_BOLD);
+    return heading;
+}
+
+// The keyboard's shortcuts: a row each, then a note on how to set them,
+// or why one can't be received. On Windows, then the controller's, spaced
+// the same: a heading with whether one is connected, a row each, and how
+// to set them.
 void SettingsWindow::add_shortcut_settings(int x, int w){
     const int left = x + MARGIN, right = x + w - MARGIN;
     const int box_x = left + LABEL_W;
-    // Lines up with the first category in the sidebar, like the General page
-    int y = MARGIN + (CATEGORY_H - PILL_H) / 2;
 
     // On Linux, the command to bind to a key, in a box it can be copied
-    // from. None on Windows, where the app takes the key itself.
+    // from. None on Windows, where the app takes the key itself. The
+    // controller's are Windows only for now, so Linux has no headings.
     const bool commands = !hotkey_command(HotkeyAction::Capture).empty();
+    // Lines up with the first category in the sidebar, like the General
+    // and Speech-to-Text pages
+    int y = MARGIN + (CATEGORY_H - (commands ? PILL_H : HEADING_H)) / 2;
+    if (!commands){
+        section_heading(left, y, "Keyboard");
+        y += HEADING_H + 4;
+    }
     for (HotkeyAction action : HOTKEY_ACTIONS){
         const size_t index = static_cast<size_t>(action);
         const HotkeyText& text = HOTKEY_TEXTS[index];
@@ -776,20 +812,92 @@ void SettingsWindow::add_shortcut_settings(int x, int w){
             box = input;
         }
         set_tip({label, box}, text.tip);
-        y += PILL_H + 2;
-
-        Fl_Box* status = dim_line(box_x, y, right - box_x, 16);
-        status->labelcolor(ERROR_COLOR);
-        hotkey_statuses[index] = status;
-        y += status->h() + 8;
+        y += ROW_H;
     }
 
-    // Wayland lets no app grab a key for itself
-    Fl_Box* note = dim_line(left, y, right - left, 32,
-                            commands ? "Bind a key to each command in your desktop's settings,\n"
-                                       "e.g. in hyprland.conf: bind = SUPER, A, exec, <the command>"
-                                     : "Click a box, then press the keys. They work in any app, even fullscreen.");
-    note->align(FL_ALIGN_LEFT | FL_ALIGN_TOP | FL_ALIGN_INSIDE | FL_ALIGN_WRAP);
+    // Wayland lets no app grab a key for itself. Why a shortcut can't be
+    // received, if one can't, goes in its place: see refresh_buffer().
+    hotkey_help = commands ? "Bind a key to each command in your desktop's settings,\n"
+                             "e.g. in hyprland.conf: bind = SUPER, A, exec, <the command>"
+                           : "Click a box, then press the keys. They work in any app, even fullscreen.";
+    hotkey_note = dim_line(left, y, right - left, commands ? 32 : 18, hotkey_help);
+    // Cut off at its height, rather than over the controller's: the
+    // tooltip has a long error in full
+    hotkey_note->align(FL_ALIGN_LEFT | FL_ALIGN_TOP | FL_ALIGN_INSIDE | FL_ALIGN_WRAP | FL_ALIGN_CLIP);
+    if (commands) return;
+    y += hotkey_note->h() + GROUP_GAP;
+
+    // Filled by refresh_controller(), since it changes as one is
+    // connected and disconnected
+    const std::string controller_tip =
+        "Buttons held together on a controller, e.g. Back+A, work like the keys: in any app, even fullscreen.\n"
+        "The game still gets the buttons too, so pick ones it doesn't use.\n"
+        "Xbox controllers work, and others that act like one (XInput), e.g. a PlayStation one through DS4Windows.";
+    Fl_Box* heading = section_heading(left, y, "Controller");
+    controller_status = dim_line(box_x, y, right - box_x, HEADING_H);
+    set_tip({heading, controller_status}, controller_tip);
+    y += HEADING_H + 4;
+
+    ControllerListener* listener = capturer.controller();
+    for (HotkeyAction action : HOTKEY_ACTIONS){
+        const size_t index = static_cast<size_t>(action);
+        const HotkeyText& text = HOTKEY_TEXTS[index];
+        Fl_Box* label = row_label(left, y, text.label);
+
+        auto* input = new ControllerInput(box_x, y, SHORTCUT_W, PILL_H, listener);
+        input->callback(on_controller, this);
+        // Not two for the same buttons: only one would press
+        input->problem = [this, action](ControllerButtons buttons) -> std::string {
+            for (HotkeyAction other : HOTKEY_ACTIONS){
+                if (other == action) continue;
+                const std::string& combo = controller_setting(settings.get(), other);
+                if (parse_controller_combo(combo) == buttons)
+                    return std::format("{} has them", HOTKEY_TEXTS[static_cast<size_t>(other)].label);
+            }
+            return "";
+        };
+        if (!listener) input->deactivate();
+        set_tip({label, input}, text.tip);
+        controller_inputs[index] = input;
+        y += ROW_H;
+    }
+
+    dim_line(left, y, right - left, 18, "Click a box, then press the buttons together. Delete clears it.");
+}
+
+void SettingsWindow::stop_shortcuts_waiting(){
+    for (ShortcutInput* input : shortcut_inputs)
+        if (input) input->stop_waiting();
+    for (ControllerInput* input : controller_inputs)
+        if (input) input->stop_waiting();
+}
+
+void SettingsWindow::on_controller(Fl_Widget* w, void* data){
+    SettingsWindow* self = static_cast<SettingsWindow*>(data);
+    for (HotkeyAction action : HOTKEY_ACTIONS){
+        ControllerInput* input = self->controller_inputs[static_cast<size_t>(action)];
+        if (input != w) continue;
+        const std::string combo = format_controller_combo(input->combo());
+        // The Capturer hears of it and gives it to the controller listener
+        self->settings.update([&combo, action](Settings& s){ controller_setting(s, action) = combo; });
+    }
+}
+
+void SettingsWindow::refresh_controller(){
+    if (!controller_status) return;
+    for (HotkeyAction action : HOTKEY_ACTIONS)
+        controller_inputs[static_cast<size_t>(action)]->combo(
+            parse_controller_combo(controller_setting(settings.get(), action)).value_or(0));
+
+    const ControllerListener* listener = capturer.controller();
+    if (!listener){
+        controller_status->copy_label(capturer.controller_error().c_str());
+        controller_status->labelcolor(ERROR_COLOR);
+    } else {
+        controller_status->copy_label(listener->connected() ? "Connected" : "None connected");
+        controller_status->labelcolor(DIM);
+    }
+    controller_status->redraw();
 }
 
 void SettingsWindow::on_stash_transcribe(Fl_Widget*, void* data){
@@ -892,15 +1000,28 @@ void SettingsWindow::refresh_buffer(){
     }
     buffer_status->redraw();
 
+    // Why shortcuts can't be received, in the note's place: the first
+    // one's, with which it is, or once if it's the same for all, e.g.
+    // another copy of the app has them. The tooltip has each in full.
+    std::string error, all_errors;
+    bool same_for_all = true;
     for (HotkeyAction action : HOTKEY_ACTIONS){
-        Fl_Box* status = hotkey_statuses[static_cast<size_t>(action)];
-        if (!status) continue;
-        const std::string error = capturer.hotkey_error(action);
-        status->copy_label(error.c_str());
-        // In full, in case it's cut off
-        status->copy_tooltip(error.empty() ? nullptr : error.c_str());
-        status->redraw();
+        const std::string& why = capturer.hotkey_error(action);
+        same_for_all = same_for_all && why == capturer.hotkey_error(HotkeyAction::Capture);
+        if (why.empty()) continue;
+        const std::string line = std::format("{}: {}", HOTKEY_TEXTS[static_cast<size_t>(action)].label, why);
+        if (error.empty()) error = line;
+        all_errors += (all_errors.empty() ? "" : "\n") + line;
     }
+    if (!error.empty() && same_for_all){
+        error = capturer.hotkey_error(HotkeyAction::Capture);
+        all_errors = error;
+    }
+    hotkey_note->copy_label(error.empty() ? hotkey_help : error.c_str());
+    hotkey_note->labelcolor(error.empty() ? DIM : ERROR_COLOR);
+    hotkey_note->copy_tooltip(error.empty() ? nullptr : all_errors.c_str());
+    hotkey_note->redraw();
+    refresh_controller();
     if (screenshots_check) screenshots_check->value(settings.get().buffer.screenshots);
     if (stash_chime_check) stash_chime_check->value(settings.get().buffer.stash_chime);
     if (stash_transcribe_check) stash_transcribe_check->value(settings.get().buffer.stash_transcribe);

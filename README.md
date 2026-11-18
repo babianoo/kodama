@@ -170,7 +170,8 @@ Everything is in **Settings**:
 - **Recording**: turn the rolling buffer on or off, set how many seconds it
   keeps (and how much of the end is selected when a capture opens), and
   what stashing a line does.
-- **Shortcuts**: the capture, screen capture and stash shortcuts.
+- **Shortcuts**: the capture, screen capture and stash shortcuts, from
+  the keyboard and (on Windows) a game controller.
 - **Anki**: choose the deck and note type, and which field gets the word,
   reading, meaning, sentence, audio and picture. The note type is
   Kodama's own unless you pick another: the sentence on the front, the
@@ -203,6 +204,13 @@ a capture for later.
 
   On KDE, add each command in System Settings > Shortcuts > Add New >
   Command or Script.
+- **Controller** (Windows only for now): each can also be buttons held
+  together on a game controller, e.g. `Back+A`. None are set at first,
+  since no buttons are free in every game. Set them under Controller in
+  Settings > Shortcuts: click a box, press the buttons together and let
+  go; Delete clears it. The game still gets the buttons too. Xbox
+  controllers work, and others that act like one (XInput), e.g. a
+  PlayStation one through DS4Windows.
 
 ### Screenshots on Linux
 
