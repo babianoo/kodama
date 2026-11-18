@@ -77,17 +77,25 @@ int ShortcutInput::handle(int event){
         if (Fl::focus() != this) take_focus();
         set_waiting(true);
         return 1;
-    case FL_FOCUS:
-        Fl_Input::handle(event);
-        set_waiting(true);
-        return 1;
+    // Getting the focus doesn't start waiting: FLTK gives it to the first
+    // box by itself, e.g. when the window opens or the page changes, and
+    // the next keys pressed would then replace the shortcut unasked
     case FL_UNFOCUS:
         set_waiting(false);
         return Fl_Input::handle(event);
     case FL_KEYBOARD: {
         const int key = Fl::event_key();
-        // To the next widget, and Escape once more closes the window
-        if (!waiting || (key == FL_Tab && !Fl::event_state(FL_CTRL | FL_ALT | FL_META))) return 0;
+        const bool modifiers = Fl::event_state(FL_SHIFT | FL_CTRL | FL_ALT | FL_META) != 0;
+        if (!waiting){
+            // Without a mouse: Tab to the box, then Enter or Space
+            if (!modifiers && (key == FL_Enter || key == FL_KP_Enter || key == ' ')){
+                set_waiting(true);
+                return 1;
+            }
+            // To the next widget, and Escape closes the window
+            return 0;
+        }
+        if (key == FL_Tab && !Fl::event_state(FL_CTRL | FL_ALT | FL_META)) return 0;
         if (key == FL_Escape){
             set_waiting(false);
             return 1;

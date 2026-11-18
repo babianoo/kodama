@@ -7,9 +7,11 @@
 #include <FL/Fl_Input.H>
 
 // A box that shows a key combination, and takes a new one from the keys
-// pressed while it has the focus, e.g. Win+Alt+C: click it, then press
-// them. Escape gives up and keeps the one before. A combination
-// shortcut_problem() rejects isn't taken, and the box says why.
+// pressed after it's clicked, e.g. Win+Alt+C: click it, then press them.
+// Having the focus alone isn't enough, since FLTK gives it by itself;
+// from the keyboard, Tab to it and press Enter or Space first. Escape
+// gives up and keeps the one before. A combination shortcut_problem()
+// rejects isn't taken, and the box says why.
 //
 // The callback runs once a new one is taken; shortcut() has it then.
 class ShortcutInput : public Fl_Input {
