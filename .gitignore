@@ -3,6 +3,9 @@ entrepreneurship/
 build/
 build-dist/
 testing/
+# Left by whisper.cpp's CMake linker check (cc -Wl,-v) in the folder
+# CMake is run from
+/a.exe
 
 *.txt
 stuff.md
